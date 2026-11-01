@@ -3,204 +3,96 @@ package nl.giejay.android.tv.immich.shared.prefs
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
-import nl.giejay.android.tv.immich.screensaver.ScreenSaverType
-import nl.giejay.mediaslider.transformations.GlideTransformations
+import kotlinx.coroutines.CoroutineScope
+import nl.giejay.android.tv.immich.security.ApiKeyCipher
+import nl.giejay.android.tv.immich.slider.FavoriteButtonControllerPlugin
+import nl.giejay.android.tv.immich.slider.FavoriteService
+import nl.giejay.mediaslider.adapter.AlignOption
+import nl.giejay.mediaslider.adapter.MetaDataClock
+import nl.giejay.mediaslider.adapter.MetaDataItem
+import nl.giejay.mediaslider.adapter.MetaDataMediaCount
+import nl.giejay.mediaslider.adapter.MetaDataSliderItem
+import nl.giejay.mediaslider.model.MetaDataType
+import nl.giejay.mediaslider.plugin.DateOverlayViewPlugin
+import nl.giejay.mediaslider.plugin.ExternalPlayerButtonControllerPlugin
+import nl.giejay.mediaslider.plugin.MediaRemoteControlsKeyEventPlugin
+import nl.giejay.mediaslider.plugin.MetadataViewPlugin
+import nl.giejay.mediaslider.plugin.SliderControllerPlugin
+import nl.giejay.mediaslider.plugin.SliderKeyEventPlugin
+import nl.giejay.mediaslider.plugin.SliderViewPlugin
+import nl.giejay.mediaslider.util.MetaDataConverter
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import kotlin.reflect.KClass
+
+enum class MetaDataScreen {
+    SCREENSAVER, VIEWER
+}
+
+/** Default Immich slider plugins with a shared [MetadataViewPlugin] instance. */
+data class EnabledSliderPlugins(
+    val controllerPlugins: List<SliderControllerPlugin>,
+    val viewPlugins: List<SliderViewPlugin<*>>,
+    val keyEventPlugins: List<SliderKeyEventPlugin>
+)
 
 object PreferenceManager {
     lateinit var sharedPreference: SharedPreferences
     private lateinit var liveSharedPreferences: LiveSharedPreferences
-    private val liveContext: MutableMap<String, Any> = mutableMapOf()
 
-    // wakelock
-    val KEY_WAKE_LOCK_MINUTES = "wake_lock_minutes"
+    // stores the typed values, not the internal PrefTypes (String, Int)
+    private val liveContext: MutableMap<String, Any?> = mutableMapOf()
 
-    // host settings
-    val KEY_HOST_NAME = "hostName"
-    val KEY_API_KEY = "apiKey"
-    val KEY_DISABLE_SSL_VERIFICATION = "disableSSLVerification"
-
-    // screensaver settings
-    private val KEY_SCREENSAVER_INTERVAL = "screensaver_interval"
-    private val KEY_SCREENSAVER_SHOW_MEDIA_COUNT = "screensaver_show_media_count"
-    private val KEY_SCREENSAVER_SHOW_DESCRIPTION = "screensaver_show_description"
-    private val KEY_SCREENSAVER_SHOW_ALBUM_NAME = "screensaver_show_album_name"
-    private val KEY_SCREENSAVER_SHOW_DATE = "screensaver_show_date"
-    private val KEY_SCREENSAVER_SHOW_CLOCK = "screensaver_show_clock"
-    private val KEY_SCREENSAVER_ANIMATE_ASSET_SLIDE = "screensaver_animate_asset_slide"
-    private val KEY_SCREENSAVER_ALBUMS = "screensaver_albums"
-    private val KEY_SCREENSAVER_INCLUDE_VIDEOS = "screensaver_include_videos"
-    private val KEY_SCREENSAVER_VIDEO_SOUND = "screensaver_play_sound"
-    private val KEY_SCREENSAVER_TYPE = "screensaver_type"
-
-    // slider/view settings
-    private val KEY_SLIDER_INTERVAL = "slider_interval"
-    private val KEY_SLIDER_ANIMATION_SPEED = "slider_animation_speed"
-    private val KEY_SLIDER_SHOW_DESCRIPTION = "slider_show_description"
-    private val KEY_SLIDER_SHOW_MEDIA_COUNT = "slider_show_media_count"
-    private val KEY_SLIDER_SHOW_DATE = "slider_show_date"
-    private val KEY_SLIDER_SHOW_CITY = "slider_show_city"
-    private val KEY_SLIDER_ONLY_USE_THUMBNAILS = "slider_only_use_thumbnails"
-    private val KEY_SLIDER_MERGE_PORTRAIT_PHOTOS = "slider_merge_portrait_photos"
-    private val KEY_MAX_CUT_OFF_WIDTH = "slider_max_cut_off_width"
-    private val KEY_MAX_CUT_OFF_HEIGHT = "slider_max_cut_off_height"
-    private val KEY_GLIDE_TRANSFORMATION = "slider_glide_transformation"
-
-    // sorting
-    val KEY_ALBUMS_SORTING = "albums_sorting"
-    private val KEY_PHOTOS_SORTING = "photos_sorting"
-    private val KEY_ALL_ASSETS_SORTING = "all_assets_sorting"
-//    private val KEY_ALBUMS_SORTING_REVERSE = "albums_sorting_reverse"
-//    private val KEY_PHOTOS_SORTING_REVERSE = "photos_sorting_reverse"
-
-    // other
-    val KEY_DEBUG_MODE = "debug_mode"
-    val KEY_HIDDEN_HOME_ITEMS = "hidden_home_items"
-    val KEY_SIMILAR_ASSETS_YEARS_BACK = "similar_assets_years_back"
-    val KEY_SIMILAR_ASSETS_PERIOD_DAYS = "similar_assets_period_days"
-    val KEY_RECENT_ASSETS_MONTHS_BACK = "recent_assets_months_back"
-    private val KEY_USER_ID = "user_id"
-
-    private val propsToWatch = mapOf(
-        KEY_WAKE_LOCK_MINUTES to 15,
-        KEY_HOST_NAME to "",
-        KEY_API_KEY to "",
-        KEY_DISABLE_SSL_VERIFICATION to false,
-        KEY_SCREENSAVER_INTERVAL to "3",
-        KEY_SLIDER_INTERVAL to "3",
-        KEY_SLIDER_SHOW_DESCRIPTION to true,
-        KEY_SLIDER_SHOW_MEDIA_COUNT to true,
-        KEY_SLIDER_SHOW_DATE to false,
-        KEY_SLIDER_SHOW_CITY to true,
-        KEY_SCREENSAVER_SHOW_DESCRIPTION to true,
-        KEY_SCREENSAVER_SHOW_ALBUM_NAME to true,
-        KEY_SCREENSAVER_SHOW_DATE to true,
-        KEY_SCREENSAVER_SHOW_CLOCK to true,
-        KEY_SCREENSAVER_ANIMATE_ASSET_SLIDE to true,
-        KEY_SCREENSAVER_SHOW_MEDIA_COUNT to true,
-        KEY_SCREENSAVER_ALBUMS to mutableSetOf<String>(),
-        KEY_SCREENSAVER_INCLUDE_VIDEOS to false,
-        KEY_SCREENSAVER_VIDEO_SOUND to false,
-        KEY_SCREENSAVER_TYPE to ScreenSaverType.RECENT.toString(),
-        KEY_DEBUG_MODE to false,
-        KEY_ALBUMS_SORTING to AlbumsOrder.LAST_UPDATED.toString(),
-        KEY_PHOTOS_SORTING to PhotosOrder.OLDEST_NEWEST.toString(),
-        KEY_ALL_ASSETS_SORTING to PhotosOrder.NEWEST_OLDEST.toString(),
-//        KEY_ALBUMS_SORTING_REVERSE to false,
-//        KEY_PHOTOS_SORTING_REVERSE to false,
-        KEY_SLIDER_ONLY_USE_THUMBNAILS to true,
-        KEY_SLIDER_MERGE_PORTRAIT_PHOTOS to true,
-        KEY_HIDDEN_HOME_ITEMS to emptySet<String>(),
-        KEY_SIMILAR_ASSETS_YEARS_BACK to 10,
-        KEY_RECENT_ASSETS_MONTHS_BACK to 5,
-        KEY_SIMILAR_ASSETS_PERIOD_DAYS to 30,
-        KEY_SLIDER_ANIMATION_SPEED to 0,
-        KEY_MAX_CUT_OFF_HEIGHT to 20,
-        KEY_MAX_CUT_OFF_WIDTH to 20
-    )
+    fun <T : Any> subclasses(clazz: KClass<T>): List<KClass<out T>> {
+        return clazz.sealedSubclasses.flatMap { subclasses(it) + it }
+    }
 
     fun init(context: Context) {
         sharedPreference = PreferenceManager.getDefaultSharedPreferences(context)
         liveSharedPreferences = LiveSharedPreferences(sharedPreference)
-        propsToWatch.forEach { (key, defaultValue) ->
-            liveSharedPreferences.subscribe(key, defaultValue) { value ->
-                liveContext[key] = value
+        migrateApiKeyIfNeeded()
+        subclasses(Pref::class).filter { it.objectInstance != null }.forEach { pref ->
+            val prefInstance = pref.objectInstance!! as Pref<Any, *, *>
+            liveSharedPreferences.subscribeTyped(prefInstance) { typeValue ->
+                liveContext[prefInstance.key()] = typeValue
             }
         }
     }
 
-    fun wakeLockMinutes(): Int {
-        val value = liveContext[KEY_WAKE_LOCK_MINUTES].toString()
-        return if(value == "always on") {
-            0
-        } else {
-            value.toInt()
+    // one-time, before the subscription loop below reads it: re-save a legacy-plaintext or
+    // previously-unencryptable API key now that ApiKeyCipher can (re)try encrypting it
+    private fun migrateApiKeyIfNeeded() {
+        val raw = sharedPreference.getString(API_KEY.key(), "") ?: return
+        if (raw.isNotEmpty() && !ApiKeyCipher.isEncrypted(raw)) {
+            API_KEY.save(sharedPreference, ApiKeyCipher.decryptOrAdoptLegacy(raw))
         }
     }
 
-    fun apiKey(): String {
-        return liveContext[KEY_API_KEY] as String
+    @Suppress("UNCHECKED_CAST")
+    fun <T> get(key: Pref<T, *, *>): T {
+        return liveContext[key.key()] as T ?: key.getValue(sharedPreference)
     }
 
-    fun hostName(): String {
-        return liveContext[KEY_HOST_NAME] as String
+    fun wakeLockMinutes(): Int = get(WAKE_LOCK_MINUTES)
+
+    val hostName: String
+        get() = get(HOST_NAME).replace("\\s".toRegex(), "").removeSuffix("/")
+
+    fun <T, PREFTYPE> save(key: Pref<T, *, PREFTYPE>, value: T) {
+        liveContext[key.key()] = value
+        key.save(sharedPreference, value)
     }
 
-    fun screensaverInterval(): Int {
-        return liveContext[KEY_SCREENSAVER_INTERVAL]?.toString()?.toInt() ?: 3
+    fun <T> subscribe(key: Pref<T, *, *>, onChange: (T) -> Unit) {
+        liveSharedPreferences.subscribeTyped(key, onChange)
     }
 
-    fun screensaverShowDescription(): Boolean {
-        return liveContext[KEY_SCREENSAVER_SHOW_DESCRIPTION] as Boolean
-    }
-
-    fun screensaverShowMediaCount(): Boolean {
-        return liveContext[KEY_SCREENSAVER_SHOW_MEDIA_COUNT] as Boolean
-    }
-
-    fun screensaverShowAlbumName(): Boolean {
-        return liveContext[KEY_SCREENSAVER_SHOW_ALBUM_NAME] as Boolean
-    }
-
-    fun screensaverShowDate(): Boolean {
-        return liveContext[KEY_SCREENSAVER_SHOW_DATE] as Boolean
-    }
-
-    fun screensaverShowClock(): Boolean {
-        return liveContext[KEY_SCREENSAVER_SHOW_CLOCK] as Boolean
-    }
-
-    fun enableSlideAnimation(): Boolean {
-        return liveContext[KEY_SCREENSAVER_ANIMATE_ASSET_SLIDE] as Boolean
-    }
-
-    fun screensaverIncludeVideos(): Boolean {
-        return liveContext[KEY_SCREENSAVER_INCLUDE_VIDEOS] as Boolean
-    }
-
-    fun screensaverVideoSound(): Boolean {
-        return liveContext[KEY_SCREENSAVER_VIDEO_SOUND] as Boolean
-    }
-
-    fun sliderInterval(): Int {
-        return liveContext[KEY_SLIDER_INTERVAL]?.toString()?.toInt() ?: 3
-    }
-
-    fun sliderShowDescription(): Boolean {
-        return liveContext[KEY_SLIDER_SHOW_DESCRIPTION] as Boolean
-    }
-
-    fun sliderShowMediaCount(): Boolean {
-        return liveContext[KEY_SLIDER_SHOW_MEDIA_COUNT] as Boolean
-    }
-
-    fun sliderShowDate(): Boolean {
-        return liveContext[KEY_SLIDER_SHOW_DATE] as Boolean
-    }
-
-    fun sliderOnlyUseThumbnails(): Boolean {
-        return liveContext[KEY_SLIDER_ONLY_USE_THUMBNAILS] as Boolean
-    }
-
-    fun sliderMergePortraitPhotos(): Boolean {
-        return liveContext[KEY_SLIDER_MERGE_PORTRAIT_PHOTOS] as Boolean
-    }
-
-    fun saveApiKey(value: String) {
-        saveString(KEY_API_KEY, value)
-    }
-
-    fun saveHostName(value: String) {
-        saveString(KEY_HOST_NAME, value.replace(Regex("/$"), ""))
-    }
-
-    fun saveSslVerification(value: Boolean) {
-        saveBoolean(KEY_DISABLE_SSL_VERIFICATION, value)
+    fun subscribeMultiple(keys: List<Pref<*, *, *>>, onChange: (Map<String, Any?>) -> Unit) {
+        liveSharedPreferences.subscribeMultiple(keys, onChange)
     }
 
     fun isLoggedId(): Boolean {
-        return isValid(hostName(), apiKey())
+        return isValid(get(HOST_NAME), get(API_KEY))
     }
 
     fun isValid(hostName: String?, apiKey: String?): Boolean {
@@ -208,167 +100,113 @@ object PreferenceManager {
     }
 
     fun removeApiSettings() {
-        saveString(KEY_HOST_NAME, "")
-        saveString(KEY_API_KEY, "")
+        save(HOST_NAME, "")
+        save(API_KEY, "")
     }
 
-    fun getScreenSaverAlbums(): Set<String> {
-        return liveContext[KEY_SCREENSAVER_ALBUMS] as Set<String>
+    private fun removeStringSetItem(item: String, prefKey: StringSetPref) {
+        save(prefKey, get(prefKey).filter { it != item }.toSet())
     }
 
-    fun getScreenSaverType(): ScreenSaverType {
-        return ScreenSaverType.valueOf(liveContext[KEY_SCREENSAVER_TYPE] as String)
+    private fun addStringSetItem(item: String, prefKey: StringSetPref) {
+        save(prefKey, get(prefKey) + item)
     }
 
-    fun saveScreenSaverAlbums(strings: Set<String>) {
-        saveStringSet(KEY_SCREENSAVER_ALBUMS, strings)
-        liveContext[KEY_SCREENSAVER_ALBUMS] = strings
-    }
-
-    fun disableSslVerification(): Boolean {
-        return liveContext[KEY_DISABLE_SSL_VERIFICATION] as Boolean
-    }
-
-    fun debugEnabled(): Boolean {
-        return liveContext[KEY_DEBUG_MODE] as Boolean
-    }
-
-    fun saveDebugMode(debugMode: Boolean) {
-        liveContext[KEY_DEBUG_MODE] = debugMode
-        saveBoolean(KEY_DEBUG_MODE, debugMode)
-    }
-
-    fun hiddenHomeItems(): Set<String> {
-        return liveContext[KEY_HIDDEN_HOME_ITEMS] as Set<String>
-    }
-
-    fun removeHiddenHomeItem(item: String) {
-        saveStringSet(KEY_HIDDEN_HOME_ITEMS, hiddenHomeItems().filter { it != item }.toSet())
-    }
-
-    fun addHiddenHomeItem(item: String) {
-        saveStringSet(KEY_HIDDEN_HOME_ITEMS, hiddenHomeItems() + item)
-    }
-
-    fun getUserId(): String {
-        return getString(KEY_USER_ID, "")
-    }
-
-    fun setUserId(userId: String) {
-        saveString(KEY_USER_ID, userId)
-    }
-
-    fun albumsOrder(): AlbumsOrder {
-        return AlbumsOrder.valueOfSafe(
-            liveContext[KEY_ALBUMS_SORTING] as String,
-            AlbumsOrder.LAST_UPDATED
-        )
-    }
-
-    fun photosOrder(): PhotosOrder {
-        return PhotosOrder.valueOfSafe(
-            liveContext[KEY_PHOTOS_SORTING] as String,
-            PhotosOrder.OLDEST_NEWEST
-        )
-    }
-
-    fun allAssetsOrder(): PhotosOrder {
-        return PhotosOrder.valueOfSafe(
-            liveContext[KEY_ALL_ASSETS_SORTING] as String,
-            PhotosOrder.NEWEST_OLDEST
-        )
-    }
-
-    fun saveSortingForAlbum(albumId: String, value: String) {
-        saveString(keyAlbumsSorting(albumId), value)
-    }
-
-    fun getSortingForAlbum(albumId: String): PhotosOrder {
-        return PhotosOrder.valueOfSafe(
-            getString(keyAlbumsSorting(albumId), photosOrder().toString()),
-            photosOrder()
-        )
-    }
-
-    fun keyAlbumsSorting(albumId: String): String {
-        return "photos_sorting_${albumId}"
-    }
-
-//    fun reversePhotosOrder(): Boolean {
-//        return liveContext[KEY_PHOTOS_SORTING_REVERSE] as Boolean
-//    }
-//
-//    fun reverseAlbumsOrder(): Boolean {
-//        return liveContext[KEY_ALBUMS_SORTING_REVERSE] as Boolean
-//    }
-
-    fun getBoolean(key: String, default: Boolean): Boolean {
-        return sharedPreference.getBoolean(key, default)
-    }
-
-    private fun saveString(key: String, value: String) {
-        liveContext[key] = value
-        sharedPreference.edit().putString(key, value).apply()
-    }
-
-    private fun saveBoolean(key: String, value: Boolean) {
-        liveContext[key] = value
-        sharedPreference.edit().putBoolean(key, value).apply()
-    }
-
-    private fun saveStringSet(key: String, value: Set<String>) {
-        liveContext[key] = value
-        sharedPreference.edit().putStringSet(key, value).apply()
-    }
-
-    fun getString(key: String, defaultValue: String): String {
-        return sharedPreference.getString(key, defaultValue) ?: defaultValue
-    }
-
-    fun toggleHiddenHomeItem(name: String) {
-        if(hiddenHomeItems().contains(name)){
-            removeHiddenHomeItem(name)
+    fun toggleStringSetItem(name: String, prefKey: StringSetPref) {
+        if (get(prefKey).contains(name)) {
+            removeStringSetItem(name, prefKey)
         } else {
-            addHiddenHomeItem(name)
+            addStringSetItem(name, prefKey)
         }
     }
 
-    fun isHomeItemHidden(name: String?): Boolean {
-        return name?.let { hiddenHomeItems().contains(it) } ?: false
+    fun itemInStringSet(name: String?, prefKey: StringSetPref): Boolean {
+        return name?.let { get(prefKey).contains(it) } ?: false
     }
 
-    fun similarAssetsYearsBack(): Int {
-        return Integer.parseInt(liveContext[KEY_SIMILAR_ASSETS_YEARS_BACK].toString())
+    fun getString(key: String, default: String): String {
+        return sharedPreference.getString(key, default)!!
     }
 
-    fun similarAssetsPeriodDays(): Int {
-        return Integer.parseInt(liveContext[KEY_SIMILAR_ASSETS_PERIOD_DAYS].toString())
+    fun getViewMetaDataFromOldPrefs(): List<MetaDataItem> {
+        val metaData: MutableList<MetaDataItem> = mutableListOf()
+        if (get(SLIDER_SHOW_DESCRIPTION)) {
+            metaData.add(MetaDataSliderItem(MetaDataType.DESCRIPTION, AlignOption.RIGHT))
+//            metaData.add(MetaDataSliderItem(MetaDataType.ALBUM_NAME, AlignOption.RIGHT))
+        }
+        if (get(SLIDER_SHOW_CITY)) {
+            metaData.add(MetaDataSliderItem(MetaDataType.CITY, AlignOption.RIGHT))
+            metaData.add(MetaDataSliderItem(MetaDataType.COUNTRY, AlignOption.RIGHT))
+        }
+        // todo add toggles
+
+        if (get(SLIDER_SHOW_DATE)) {
+            metaData.add(MetaDataSliderItem(MetaDataType.DATE, AlignOption.RIGHT))
+        }
+
+        if (get(SLIDER_SHOW_MEDIA_COUNT)) {
+            metaData.add(MetaDataMediaCount(AlignOption.RIGHT))
+        }
+        return metaData
     }
 
-    fun recentAssetsMonthsBack(): Int {
-        return Integer.parseInt(liveContext[KEY_RECENT_ASSETS_MONTHS_BACK].toString())
+    fun getScreenSaverMetaDataFromOldPrefs(): List<MetaDataItem> {
+        val metaData: MutableList<MetaDataItem> = mutableListOf()
+        if (get(SCREENSAVER_SHOW_CLOCK)) {
+            metaData.add(MetaDataClock(AlignOption.RIGHT))
+        }
+        if (get(SCREENSAVER_SHOW_DESCRIPTION)) {
+            metaData.add(MetaDataSliderItem(MetaDataType.DESCRIPTION, AlignOption.RIGHT))
+            metaData.add(MetaDataSliderItem(MetaDataType.CITY, AlignOption.RIGHT))
+            metaData.add(MetaDataSliderItem(MetaDataType.COUNTRY, AlignOption.RIGHT))
+        }
+
+        if (get(SCREENSAVER_SHOW_ALBUM_NAME)) {
+            metaData.add(MetaDataSliderItem(MetaDataType.ALBUM_NAME, AlignOption.RIGHT))
+        }
+        if (get(SCREENSAVER_SHOW_DATE)) {
+            metaData.add(MetaDataSliderItem(MetaDataType.DATE, AlignOption.RIGHT))
+        }
+
+        return metaData
     }
 
-    fun sliderShowCity(): Boolean {
-        return liveContext[KEY_SLIDER_SHOW_CITY] as Boolean
+    fun saveMetaData(align: AlignOption, metaDataScreen: MetaDataScreen, metaData: List<MetaDataItem>) {
+        sharedPreference.edit().putString(createKey(metaDataScreen, align), MetaDataConverter.metaDataListToJson(metaData)).apply()
     }
 
-    fun animationSpeedMillis(): Int {
-        return liveContext[KEY_SLIDER_ANIMATION_SPEED].toString().toInt()
+    private fun createKey(metaDataScreen: MetaDataScreen, align: AlignOption) = "meta_data_${metaDataScreen}_${align}"
+
+    fun getMetaData(align: AlignOption, metaDataScreen: MetaDataScreen): List<MetaDataItem> {
+        return MetaDataConverter.metaDataListFromJson(sharedPreference.getString(createKey(metaDataScreen, align), "[]")!!)
     }
 
-    fun maxCutOffWidth(): Int {
-        return liveContext[KEY_MAX_CUT_OFF_WIDTH].toString().toInt()
+    fun getAllMetaData(metaDataScreen: MetaDataScreen): List<MetaDataItem> {
+        return getMetaData(AlignOption.RIGHT, metaDataScreen) + getMetaData(AlignOption.LEFT, metaDataScreen)
     }
 
-    fun maxCutOffHeight(): Int {
-        return liveContext[KEY_MAX_CUT_OFF_HEIGHT].toString().toInt()
+    fun hasMetaDataForScreen(metaDataScreen: MetaDataScreen, align: AlignOption): Boolean {
+        return sharedPreference.contains(createKey(metaDataScreen, align))
     }
 
-    fun glideTransformation(): GlideTransformations {
-        return GlideTransformations.valueOfSafe(
-            getString(KEY_GLIDE_TRANSFORMATION, GlideTransformations.CENTER_INSIDE.toString()),
-            GlideTransformations.CENTER_INSIDE
+    /**
+     * Builds a fresh set of Immich slider plugins for one slider session.
+     * [MetadataViewPlugin] is shared across view + controller lists.
+     * [DateOverlayViewPlugin] optionally renders DATE at the top of the slider.
+     * [MediaRemoteControlsKeyEventPlugin] handles remote/D-pad seek and related keys.
+     */
+    fun createEnabledSliderPlugins(scope: CoroutineScope, favoriteService: FavoriteService): EnabledSliderPlugins {
+        val metadataPlugin = MetadataViewPlugin()
+        val remoteControlsPlugin = MediaRemoteControlsKeyEventPlugin()
+        return EnabledSliderPlugins(
+            controllerPlugins = listOf(
+                FavoriteButtonControllerPlugin(favoriteService, scope),
+                ExternalPlayerButtonControllerPlugin(),
+                metadataPlugin
+            ),
+            viewPlugins = listOf(metadataPlugin, DateOverlayViewPlugin()),
+            keyEventPlugins = listOf(remoteControlsPlugin)
         )
     }
+
 }

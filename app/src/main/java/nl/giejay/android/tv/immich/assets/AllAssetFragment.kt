@@ -5,6 +5,7 @@ import nl.giejay.android.tv.immich.api.ApiClient
 import nl.giejay.android.tv.immich.api.model.Asset
 import nl.giejay.android.tv.immich.shared.prefs.PhotosOrder
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
+import nl.giejay.android.tv.immich.shared.prefs.SLIDER_SHOW_MEDIA_COUNT
 
 class AllAssetFragment : GenericAssetFragment() {
 
@@ -16,10 +17,11 @@ class AllAssetFragment : GenericAssetFragment() {
         return apiClient.listAssets(page,
             pageCount,
             false,
-            if (PreferenceManager.allAssetsOrder() == PhotosOrder.NEWEST_OLDEST) "desc" else "asc")
+            if (currentSort == PhotosOrder.NEWEST_OLDEST) "desc" else "asc",
+            contentType = currentFilter).map { it.assets }
     }
 
     override fun showMediaCount(): Boolean {
-        return PreferenceManager.sliderShowMediaCount()
+        return PreferenceManager.get(SLIDER_SHOW_MEDIA_COUNT)
     }
 }

@@ -26,6 +26,10 @@
         app:destination="@id/authFragment" />
 
     <action
+        android:id="@+id/action_global_signInByPhoneFragment"
+        app:destination="@id/authByPhoneFragment" />
+
+    <action
         android:id="@+id/action_global_homeFragment"
         app:destination="@id/homeFragment" />
 
@@ -38,12 +42,16 @@
         app:destination="@id/albumFragment" />
 
     <action
-        android:id="@+id/action_folder_assets_fragment"
-        app:destination="@id/folderAssetsFragment" />
-
-    <action
         android:id="@+id/action_to_photo_slider"
         app:destination="@id/photoSlider" />
+
+    <action
+        android:id="@+id/action_to_metadata_fragment"
+        app:destination="@id/metaDataCustomizer" />
+
+    <action
+        android:id="@+id/action_global_screensaver_preview"
+        app:destination="@id/screenSaverPreviewFragment" />
 
     <!--    <fragment-->
     <!--        android:id="@+id/playbackFragment"-->
@@ -56,15 +64,6 @@
     <!--            android:id="@+id/action_playbackFragment_to_playbackErrorFragment"-->
     <!--            app:destination="@id/playbackErrorFragment" />-->
     <!--    </fragment>-->
-
-    <fragment
-        android:id="@+id/folderAssetsFragment"
-        android:name="nl.giejay.android.tv.immich.assets.FolderAssetsFragment"
-        android:label="FolderAssetsFragment">
-        <argument
-            android:name="path"
-            app:argType="string" />
-    </fragment>
 
     <fragment
         android:id="@+id/albumDetailsFragment"
@@ -80,7 +79,6 @@
             android:id="@+id/action_details_to_album_fragment"
             app:destination="@id/albumFragment" />
     </fragment>
-
 
     <fragment
         android:id="@+id/personAssetsFragment"
@@ -104,18 +102,33 @@
     </fragment>
 
     <fragment
+        android:id="@+id/metaDataCustomizer"
+        android:name="nl.giejay.android.tv.immich.settings.MetaDataCustomizerFragment"
+        android:label="MetaDataFragment">
+        <argument
+            android:name="screen"
+            app:argType="nl.giejay.android.tv.immich.shared.prefs.MetaDataScreen" />
+    </fragment>
+
+    <fragment
         android:id="@+id/allAssetsFragment"
         android:name="nl.giejay.android.tv.immich.assets.AllAssetFragment"
         android:label="AllAssetsFragment">
     </fragment>
 
     <fragment
+        android:id="@+id/screenSaverPreviewFragment"
+        android:name="nl.giejay.android.tv.immich.screensaver.ScreenSaverPreviewFragment"
+        android:label="ScreenSaverPreview" />
+
+    <fragment
         android:id="@+id/photoSlider"
         android:name="nl.giejay.android.tv.immich.slider.ImmichMediaSlider"
         android:label="PhotoSlider">
         <argument
-            android:name="config"
-            app:argType="nl.giejay.mediaslider.MediaSliderConfiguration" />
+            android:name="timelineView"
+            android:defaultValue="false"
+            app:argType="boolean" />
         <action
             android:id="@+id/photo_slider_to_album_details_fragment"
             app:destination="@id/albumDetailsFragment" />
@@ -129,6 +142,10 @@
         <action
             android:id="@+id/action_auth_to_auth_2"
             app:destination="@id/authFragmentStep2" />
+
+        <action
+            android:id="@+id/action_auth_to_auth_by_phone"
+            app:destination="@id/authByPhoneFragment" />
     </fragment>
 
 
@@ -143,6 +160,10 @@
         android:name="nl.giejay.android.tv.immich.auth.AuthFragmentStep2"
         android:label="Authentication"></fragment>
 
+    <fragment
+        android:id="@+id/authByPhoneFragment"
+        android:name="nl.giejay.android.tv.immich.auth.AuthByPhoneFragment"
+        android:label="Authentication"></fragment>
 
     <!--    <fragment-->
     <!--        android:id="@+id/playbackErrorFragment"-->
@@ -173,6 +194,15 @@
         <argument
             android:name="selectionMode"
             app:argType="boolean" />
+
+        <argument
+            android:name="selectionType"
+            app:argType="string" />
+
+        <argument
+            android:name="returnTo"
+            android:defaultValue=""
+            app:argType="string" />
     </fragment>
 
     <fragment
@@ -186,14 +216,8 @@
             android:id="@+id/action_homeFragment_to_personAssetsFragment"
             app:destination="@id/personAssetsFragment" />
         <action
-            android:id="@+id/action_homeFragment_to_screensaver_settings"
-            app:destination="@id/screenSaverSettings" />
-        <action
             android:id="@+id/action_homeFragment_to_view_settings"
             app:destination="@id/viewSettings" />
-        <action
-            android:id="@+id/action_homeFragment_to_debug_settings"
-            app:destination="@id/debugSettings" />
         <action
             android:id="@+id/action_homeFragment_to_photo_slider"
             app:destination="@id/photoSlider" />
@@ -216,22 +240,37 @@
             android:name="albumName"
             android:defaultValue=""
             app:argType="string" />
+        <argument
+            android:name="meta_data_item"
+            android:defaultValue=""
+            app:argType="string" />
+        <argument
+            android:name="meta_data_items"
+            android:defaultValue=""
+            app:argType="string" />
+        <argument
+            android:name="screen"
+            android:defaultValue="VIEWER"
+            app:argType="nl.giejay.android.tv.immich.shared.prefs.MetaDataScreen" />
+        <argument
+            android:name="fullscreen"
+            android:defaultValue="false"
+            app:argType="boolean" />
     </dialog>
 
     <fragment
-        android:id="@+id/screenSaverSettings"
-        android:name="nl.giejay.android.tv.immich.settings.ScreenSaverSettingsFragment"
-        android:label="ScreenSaverSettings">
-    </fragment>
-
-    <fragment
         android:id="@+id/viewSettings"
-        android:name="nl.giejay.android.tv.immich.settings.ViewSettingsFragment"
+        android:name="nl.giejay.android.tv.immich.settings.PrefSettingsFragment"
         android:label="ViewSettings"></fragment>
 
     <fragment
-        android:id="@+id/debugSettings"
-        android:name="nl.giejay.android.tv.immich.settings.DebugSettingsFragment"
-        android:label="DebugSettings"></fragment>
-
+        android:id="@+id/noFirebaseFragment"
+        android:name="nl.giejay.android.tv.immich.auth.AuthByPhoneFragment"
+        android:label="NoFirebaseFragment">
+        <action
+            android:id="@+id/action_noFirebaseFragment_to_browseFragment"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/noFirebaseFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
 </navigation>

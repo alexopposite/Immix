@@ -2,8 +2,8 @@ package nl.giejay.android.tv.immich.settings
 
 import android.app.Activity
 import android.content.Intent
-import android.util.Log
-import androidx.activity.result.contract.ActivityResultContracts
+import android.provider.Settings
+import nl.giejay.android.tv.immich.shared.prefs.NixplayPrefScreen
 import androidx.leanback.app.RowsSupportFragment
 import androidx.leanback.widget.ArrayObjectAdapter
 import androidx.leanback.widget.HeaderItem
@@ -11,24 +11,17 @@ import androidx.leanback.widget.ListRow
 import androidx.leanback.widget.ListRowPresenter
 import androidx.leanback.widget.OnItemViewClickedListener
 import androidx.navigation.fragment.findNavController
+import nl.giejay.android.tv.immich.ImmichApplication
+import nl.giejay.android.tv.immich.R
 import nl.giejay.android.tv.immich.home.HomeFragmentDirections
-import nl.giejay.android.tv.immich.shared.donate.DonateService
-import timber.log.Timber
+import nl.giejay.android.tv.immich.shared.prefs.DebugPrefScreen
+import nl.giejay.android.tv.immich.shared.prefs.HomeScreenChannelsPrefScreen
+import nl.giejay.android.tv.immich.shared.prefs.ScreensaverPrefScreen
+import nl.giejay.android.tv.immich.shared.prefs.ViewPrefScreen
 
 
 class SettingsFragment : RowsSupportFragment() {
     private val mRowsAdapter: ArrayObjectAdapter
-    private lateinit var donateService: DonateService
-
-    private val settingsResultLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            // This block is executed when the launched activity (Settings) returns.
-            if (result.resultCode == Activity.RESULT_OK) {
-                Timber.tag("SettingsFragment").d("Settings activity returned RESULT_OK")
-            } else if (result.resultCode == Activity.RESULT_CANCELED) {
-                Timber.tag("SettingsFragment").d("Settings activity returned cancelled")
-            }
-        }
 
     init {
         val selector = ListRowPresenter()
@@ -43,7 +36,6 @@ class SettingsFragment : RowsSupportFragment() {
 
     override fun onAttach(activity: Activity) {
         super.onAttach(activity)
-        donateService = DonateService(activity)
         loadData()
     }
 
@@ -53,7 +45,7 @@ class SettingsFragment : RowsSupportFragment() {
                 createCardRow(
                     listOf(
                         SettingsCard(
-                            "Server",
+                            ImmichApplication.appContext!!.getString(R.string.server),
                             null,
                             "server",
                             "ic_settings_settings",
@@ -64,35 +56,55 @@ class SettingsFragment : RowsSupportFragment() {
                             )
                         },
                         SettingsCard(
-                            "View settings",
+                            ImmichApplication.appContext!!.getString(R.string.view_settings),
                             null,
                             "view_settings",
                             "icon_view",
                             "icon_view"
                         ) {
                             findNavController().navigate(
-                                HomeFragmentDirections.actionGlobalToSettingsDialog("view")
+                                HomeFragmentDirections.actionGlobalToSettingsDialog(ViewPrefScreen.key)
                             )
                         },
                         SettingsCard(
-                            "Screensaver",
+                            ImmichApplication.appContext!!.getString(R.string.screensaver),
                             null,
                             "screensaver",
                             "screensaver",
                             "ic_settings_settings"
                         ) {
                             findNavController().navigate(
-                                HomeFragmentDirections.actionGlobalToSettingsDialog("screensaver")
+                                HomeFragmentDirections.actionGlobalToSettingsDialog(ScreensaverPrefScreen.key)
                             )
                         },
                         SettingsCard(
-                            "Android Settings",
+                            ImmichApplication.appContext!!.getString(R.string.home_screen_channels),
                             null,
-                            "android_settings",
-                            "ic_settings_settings",
-                            "ic_settings_settings"
+                            "home_screen_channels",
+                            "ic_home_channels",
+                            "ic_home_channels"
                         ) {
-                            settingsResultLauncher.launch(Intent(android.provider.Settings.ACTION_SETTINGS))
+                            findNavController().navigate(
+                                HomeFragmentDirections.actionGlobalToSettingsDialog(HomeScreenChannelsPrefScreen.key)
+                            )
+                        },
+                        SettingsCard(
+                            ImmichApplication.appContext!!.getString(R.string.debug),
+                            null,
+                            "debug",
+                            "bug",
+                            "bug"
+                        ) {
+                            findNavController().navigate(
+                                HomeFragmentDirections.actionGlobalToSettingsDialog(DebugPrefScreen.key)
+                            )
+                        },
+                        SettingsCard("Nixplay hardware", null, "nixplay", "ic_settings_settings", "ic_settings_settings") {
+                            findNavController().navigate(
+                                HomeFragmentDirections.actionGlobalToSettingsDialog(NixplayPrefScreen.key))
+                        },
+                        SettingsCard("Android Settings", null, "android_settings", "ic_settings_settings", "ic_settings_settings") {
+                            startActivity(Intent(Settings.ACTION_SETTINGS))
                         }
                     )
                 )
@@ -107,7 +119,7 @@ class SettingsFragment : RowsSupportFragment() {
         val iconCardPresenter = SettingsIconPresenter(requireContext())
         val adapter = ArrayObjectAdapter(iconCardPresenter)
         adapter.addAll(0, cards.filter { it.visible })
-        val headerItem = HeaderItem("Settings")
+        val headerItem = HeaderItem(ImmichApplication.appContext!!.getString(R.string.settings))
         return ListRow(headerItem, adapter)
     }
 }

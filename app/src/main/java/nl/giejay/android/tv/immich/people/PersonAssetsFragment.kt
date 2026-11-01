@@ -26,8 +26,8 @@ class PersonAssetsFragment : GenericAssetFragment() {
             pageCount,
             random = true,
             order = "desc",
-            includeVideos = true,
-            personIds = listOf(UUID.fromString(personId))).map { it.shuffled() }
+            contentType = currentFilter,
+            personIds = listOf(UUID.fromString(personId))).map { it.assets.shuffled() }
     }
 
     override fun showMediaCount(): Boolean {

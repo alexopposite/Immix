@@ -1,9 +1,8 @@
 package nl.giejay.android.tv.immich.api
 
+import nl.giejay.android.tv.immich.api.interceptor.ResponseLoggingInterceptor
 import nl.giejay.android.tv.immich.api.util.UnsafeOkHttpClient
-import okhttp3.Interceptor
-import okhttp3.OkHttpClient
-import timber.log.Timber
+import nl.giejay.android.tv.immich.ImmichApplication
 import java.io.File
 import java.io.FileInputStream
 import java.security.KeyStore
@@ -11,7 +10,9 @@ import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
-
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import timber.log.Timber
 
 object ApiClientFactory {
 
@@ -59,23 +60,31 @@ object ApiClientFactory {
         }
     }
 
-    fun getClient(disableSsl: Boolean, apiKey: String, debugMode: Boolean, externalFilesDir: File?): OkHttpClient {
+    fun getClient(disableSsl: Boolean, apiKey: String, debugMode: Boolean): OkHttpClient {
         val apiKeyInterceptor = interceptor(apiKey)
         val builder = if (disableSsl)
             UnsafeOkHttpClient.unsafeOkHttpClient()
         else OkHttpClient.Builder()
-
-        val p12File = File(externalFilesDir ?: File("/storage/emulated/0/Android/data/nl.giejay.android.tv.immich/files"), "immich.p12")
-        configureClientCertificateP12(builder, p12File, "immich".toCharArray())
-
+        val certDir = ImmichApplication.appContext?.getExternalFilesDir(null)
+        if (certDir != null) {
+            configureClientCertificateP12(builder, File(certDir, "immich.p12"), "immich".toCharArray())
+        }
         builder.addInterceptor(apiKeyInterceptor)
-        return builder.build()
+        return if(debugMode){
+            builder.addInterceptor(ResponseLoggingInterceptor()).build()
+        } else
+            builder.build()
     }
 
     private fun interceptor(apiKey: String): Interceptor = Interceptor { chain ->
-        val newRequest = chain.request().newBuilder()
-            .addHeader("x-api-key", apiKey.trim())
-            .build()
-        chain.proceed(newRequest)
+        try {
+            val newRequest = chain.request().newBuilder()
+                .addHeader("x-api-key", apiKey.trim())
+                .build()
+            chain.proceed(newRequest)
+        } catch (e: Exception) {
+            Timber.e(e, "Error adding API key header, invalid format")
+            chain.proceed(chain.request()) // Proceed with the original request if there's an error
+        }
     }
 }

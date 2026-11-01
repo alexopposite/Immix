@@ -15,24 +15,51 @@
     </string-array>
 
     <array name="interval_titles">
-        <item>1 second</item>
-        <item>3 seconds</item>
-        <item>5 seconds</item>
-        <item>10 seconds</item>
-        <item>20 seconds</item>
-        <item>30 seconds</item>
-        <item>1 minute</item>
+        <item>@string/interval_1_second</item>
+        <item>@string/interval_2_seconds</item>
+        <item>@string/interval_3_seconds</item>
+        <item>@string/interval_4_seconds</item>
+        <item>@string/interval_5_seconds</item>
+        <item>@string/interval_6_seconds</item>
+        <item>@string/interval_7_seconds</item>
+        <item>@string/interval_8_seconds</item>
+        <item>@string/interval_9_seconds</item>
+        <item>@string/interval_10_seconds</item>
+        <item>@string/interval_20_seconds</item>
+        <item>@string/interval_30_seconds</item>
+        <item>@string/interval_1_minute</item>
+        <item>@string/interval_3_minutes</item>
+        <item>@string/interval_5_minutes</item>
+        <item>@string/interval_10_minutes</item>
     </array>
     <string-array name="interval_values">
         <item>1</item>
+        <item>2</item>
         <item>3</item>
+        <item>4</item>
         <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+        <item>9</item>
         <item>10</item>
         <item>20</item>
         <item>30</item>
         <item>60</item>
+        <item>180</item>
+        <item>300</item>
+        <item>600</item>
     </string-array>
 
+    <array name="meta_data_alignment_labels">
+        <item>@string/left</item>
+        <item>@string/right</item>
+    </array>
+
+    <array name="meta_data_alignment_keys">
+        <item>LEFT</item>
+        <item>RIGHT</item>
+    </array>
     <string-array name="animation_speed_ms">
         <item>0</item>
         <item>100</item>
@@ -58,10 +85,10 @@
     </array>
 
     <string-array name="albums_order">
-        <item>Last updated</item>
-        <item>Alphabetically (A-Z)</item>
-        <item>Alphabetically (Z-A)</item>
-        <item>Least updated</item>
+        <item>@string/order_last_updated</item>
+        <item>@string/order_alphabetically_az</item>
+        <item>@string/order_alphabetically_za</item>
+        <item>@string/order_least_updated</item>
     </string-array>
 
     <string-array name="albums_order_keys">
@@ -72,10 +99,22 @@
     </string-array>
 
     <string-array name="photos_order">
-        <item>Newest - Oldest</item>
-        <item>Oldest - Newest</item>
-        <item>Alphabetically (A-Z)</item>
-        <item>Alphabetically (Z-A)</item>
+        <item>@string/order_newest_oldest</item>
+        <item>@string/order_oldest_newest</item>
+        <item>@string/order_alphabetically_az</item>
+        <item>@string/order_alphabetically_za</item>
+    </string-array>
+
+    <string-array name="content_type">
+        <item>@string/content_type_all</item>
+        <item>@string/content_type_image</item>
+        <item>@string/content_type_video</item>
+    </string-array>
+
+    <string-array name="content_type_keys">
+        <item>ALL</item>
+        <item>IMAGE</item>
+        <item>VIDEO</item>
     </string-array>
 
     <string-array name="photos_order_keys">
@@ -86,8 +125,8 @@
     </string-array>
 
     <string-array name="all_assets_order">
-        <item>Newest - Oldest</item>
-        <item>Oldest - Newest</item>
+        <item>@string/order_newest_oldest</item>
+        <item>@string/order_oldest_newest</item>
     </string-array>
 
     <string-array name="all_assets_order_keys">
@@ -103,10 +142,10 @@
     </string-array>
 
     <string-array name="screensaver_type_values">
-        <item>Albums</item>
-        <item>Random</item>
-        <item>Recent</item>
-        <item>Seasonal</item>
+        <item>@string/albums</item>
+        <item>@string/random</item>
+        <item>@string/recent</item>
+        <item>@string/seasonal</item>
     </string-array>
 
     <string-array name="recent_assets_months_back">
@@ -125,6 +164,8 @@
     </string-array>
 
     <string-array name="similar_assets_period_days">
+        <item>1</item>
+        <item>3</item>
         <item>5</item>
         <item>10</item>
         <item>20</item>
@@ -152,6 +193,11 @@
         <item>30</item>
         <item>40</item>
         <item>50</item>
+        <item>100</item>
     </string-array>
 
+    <string-array name="nixplay_timeout_values">
+        <item>1</item><item>5</item><item>10</item><item>15</item><item>30</item>
+        <item>45</item><item>60</item><item>90</item><item>120</item><item>0</item>
+    </string-array>
 </resources>

@@ -14,7 +14,12 @@ import nl.giejay.android.tv.immich.R
 import nl.giejay.android.tv.immich.shared.guidedstep.GuidedStepUtil.addAction
 import nl.giejay.android.tv.immich.shared.guidedstep.GuidedStepUtil.addCheckedAction
 import nl.giejay.android.tv.immich.shared.guidedstep.GuidedStepUtil.addEditableAction
+import nl.giejay.android.tv.immich.shared.prefs.API_KEY
+import nl.giejay.android.tv.immich.shared.prefs.DEBUG_MODE
+import nl.giejay.android.tv.immich.shared.prefs.DISABLE_SSL_VERIFICATION
+import nl.giejay.android.tv.immich.shared.prefs.HOST_NAME
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
+import nl.giejay.android.tv.immich.shared.prefs.SCREENSAVER_ALBUMS
 import timber.log.Timber
 
 
@@ -34,8 +39,8 @@ class AuthFragmentStep2 : GuidedStepSupportFragment() {
     override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
         val icon: Drawable = requireContext().getDrawable(R.drawable.icon)!!
         return GuidanceStylist.Guidance(
-            "Immich TV",
-            "Login to your Immich server or try a demo.",
+            getString(R.string.app_name),
+            getString(R.string.login_immich_description),
             "",
             icon
         )
@@ -45,30 +50,30 @@ class AuthFragmentStep2 : GuidedStepSupportFragment() {
         addEditableAction(
             actions,
             ACTION_NAME,
-            "Hostname",
-            PreferenceManager.hostName(),
+            getString(R.string.server_url_hint),
+            PreferenceManager.hostName,
             InputType.TYPE_CLASS_TEXT
         )
         addEditableAction(
             actions,
             ACTION_API_KEY,
-            "API Key",
-            PreferenceManager.apiKey(),
+            getString(R.string.api_key_text),
+            PreferenceManager.get(API_KEY),
             InputType.TYPE_CLASS_TEXT
         )
         addCheckedAction(
             actions,
             ACTION_CHECK_CERTS,
-            "Disable SSL verification",
-            "Only use this when you have issues with self signed certificates!",
-            PreferenceManager.disableSslVerification()
+            getString(R.string.disable_ssl_verification),
+            getString(R.string.disable_ssl_verification_desc),
+            PreferenceManager.get(DISABLE_SSL_VERIFICATION)
         )
         addCheckedAction(
             actions,
             ACTION_DEBUG_MODE,
-            "Debug mode",
-            "Enable this if you are experiencing issues with getting the Immich data.",
-            PreferenceManager.debugEnabled()
+            getString(R.string.debug_mode),
+            getString(R.string.debug_mode_desc),
+            PreferenceManager.get(DEBUG_MODE)
         )
     }
 
@@ -77,7 +82,7 @@ class AuthFragmentStep2 : GuidedStepSupportFragment() {
         savedInstanceState: Bundle?
     ) {
         super.onCreateButtonActions(actions, savedInstanceState)
-        addAction(actions, ACTION_CONTINUE, "Submit", "")
+        addAction(actions, ACTION_CONTINUE, getString(R.string.submit), "")
     }
 
     override fun onGuidedActionClicked(action: GuidedAction) {
@@ -86,24 +91,24 @@ class AuthFragmentStep2 : GuidedStepSupportFragment() {
         Timber.i("Clicked on ${action.title} in step 2, entry valid: ${entry.isValid()}")
         if (action.id == ACTION_CONTINUE) {
             if (entry.isValid()) {
-                PreferenceManager.saveScreenSaverAlbums(emptySet())
-                PreferenceManager.saveApiKey(entry.apiKey)
-                PreferenceManager.saveHostName(entry.hostName)
-                PreferenceManager.saveSslVerification(findActionById(ACTION_CHECK_CERTS)?.isChecked == true)
-                PreferenceManager.saveDebugMode(findActionById(ACTION_DEBUG_MODE)?.isChecked == true)
+                PreferenceManager.save(SCREENSAVER_ALBUMS, emptySet())
+                PreferenceManager.save(API_KEY, entry.apiKey)
+                PreferenceManager.save(HOST_NAME, entry.hostName)
+                PreferenceManager.save(DISABLE_SSL_VERIFICATION, findActionById(ACTION_CHECK_CERTS)?.isChecked == true)
+                PreferenceManager.save(DEBUG_MODE, findActionById(ACTION_DEBUG_MODE)?.isChecked == true)
                 val navControl = findNavController()
                 navControl.navigate(AuthFragmentStep2Directions.actionGlobalHomeFragment(), NavOptions.Builder().setPopUpTo(R.id.authFragment, true).build())
             } else if (entry.hostName.isEmpty()) {
-                Toast.makeText(activity, "Please enter a hostname", Toast.LENGTH_SHORT)
+                Toast.makeText(activity, getString(R.string.enter_server_url), Toast.LENGTH_SHORT)
                     .show()
             } else if (entry.apiKey.isEmpty()) {
                 Toast.makeText(
                     activity,
-                    "Please enter an API key, if you did enter it, try to highlight it again and press enter/OK, not back (sorry).",
+                    getString(R.string.enter_api_key),
                     Toast.LENGTH_LONG
                 ).show()
             } else {
-                Toast.makeText(activity, "Please enter a valid hostname", Toast.LENGTH_SHORT)
+                Toast.makeText(activity, getString(R.string.enter_valid_server_url), Toast.LENGTH_SHORT)
                     .show()
             }
         }
