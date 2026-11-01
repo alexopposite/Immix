@@ -136,6 +136,32 @@ The inherited upstream permission list was broader than the endpoints this clien
 5. Select the desired album(s) in the app. Do not put a real key in source files, screenshots,
    issue reports, or a chat. Revoke the dedicated key in Immich if retiring the frame.
 
+### Provision from a private local file (no remote typing)
+
+The repository-root file `immich_api.key` can hold only the API key as UTF-8 plain text.
+Keep it ignored and untracked, and restrict access with `chmod 600 immich_api.key`.
+Rich text, Keynote documents, and binary property lists are not accepted as key files.
+The key is never embedded in an APK or a Git commit.
+
+From this checkout, validate the private file and prepare a payload without connecting to ADB:
+
+```sh
+python3 scripts/provision-immich.py
+```
+
+Only after an ordinary-app installation and explicit deployment approval, use
+`python3 scripts/provision-immich.py --apply`. The helper requires the existing root ADB
+connection, stops Immix, backs up previous settings privately under ignored `.tooling/`,
+and writes the URL/key into the app-private preferences over stdin, not command arguments.
+It preserves other settings, enables certificate verification and disables debug logging.
+It does not install, launch, select a launcher, disable Nixplay, or change screen/wireless settings.
+System-app UIDs are deliberately rejected pending separate review.
+
+The app attempts to encrypt provisioned credentials on its next launch using Android Keystore.
+Verify that this succeeds on the actual frame: the current app can fall back to plaintext
+if the keystore fails. Until that launch, the provisioned key is plaintext in private app storage.
+The helper is locally tested with synthetic credentials; actual device provisioning remains untested.
+
 ### Which features need which permissions?
 
 | Permission | Use in this client |
