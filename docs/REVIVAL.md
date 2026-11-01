@@ -18,10 +18,13 @@ No application was installed, pushed to a frame, or published. The package ID re
 
 ## Build
 
-Use a JDK compatible with upstream AGP (JDK 21 recommended), Android SDK platform 37 and the build-tools requested by Gradle. The Gradle wrapper remains upstream's 9.6.1. No global toolchain has been installed.
+The approved project-local toolchain is installed under `.tooling/`: Temurin JDK 21.0.13+9, Android SDK platform `platforms;android-37.0`, build-tools 36.0.0 (requested by AGP), additional build-tools 37.0.0, and platform-tools 37.0.1. The Gradle wrapper remains upstream's 9.6.1. Gradle caches are in `.gradle-local/`. No global JDK or SDK was installed. Download checksums are recorded in `.tooling/toolchain-manifest.json`.
+
+Use `scripts/gradle-local` to select these tools and keep Android/Gradle state in this checkout:
 
 ```sh
-./gradlew assembleDebug testDebugUnitTest
+scripts/gradle-local assembleDebug testDebugUnitTest
+scripts/gradle-local assembleRelease
 ```
 
 No Firebase project or google-services.json is required. Default resource values are empty and contain no credentials. Optional extra-string overlays must not redefine those same default names without first removing/replacing the local defaults. Release signing is enabled only when RELEASE_KEYSTORE_PATH is supplied; otherwise release output is unsigned. Workflows build artifacts, do not automatically publish to Play Store or push version commits.
@@ -30,7 +33,12 @@ No Firebase project or google-services.json is required. Default resource values
 
 - No merge conflict markers/unmerged paths; XML parsing passes. Whitespace checks against upstream pass; imported upstream history contains pre-existing whitespace warnings.
 - Added regression tests for migration of the motion timeout and for leaving TLS untouched when no client certificate exists.
-- Android compilation and unit tests have NOT run: this Mac lacks a development JDK and Android SDK; approval to download project-local tools was requested.
+- Debug APK built successfully; 136 unit tests in 29 suites passed, with zero failures/errors/skips.
+- Minified unsigned release APK built successfully, including release vital lint checks.
+- Release R8 mapping/seed checks confirm the native MotionSensor class, all four native methods, and WAKE_LOCK_MINUTES preference object are retained. An explicit JNI keep rule prevents dropping unused methods that the vendor library may register.
+- The first compile caught the upstream slider accepting only DefaultHttpDataSource.Factory. Its public setters now accept DataSource.Factory, supporting both default HTTP and the fork's certificate-aware OkHttp playback.
+- APK manifest: minSdk 24 (Android 7.0), targetSdk 37. This includes the frame's Android 7.1.2, but does not establish runtime compatibility.
+- Build artifacts: `app/build/outputs/apk/debug/ImmichTV-6.2.0.apk` (development signing) and `app/build/outputs/apk/release/ImmichTV-6.2.0.apk` (unsigned). Neither was installed.
 - Device behavior is NOT validated.
 
 ## Hardware work remaining before deployment

@@ -18,6 +18,7 @@ import androidx.core.view.children
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
@@ -74,7 +75,7 @@ open class MediaSliderView(context: Context) : ConstraintLayout(context) {
 
     // internal
     protected val controller: MediaSliderController
-    private var defaultExoFactory = DefaultHttpDataSource.Factory()
+    private var defaultExoFactory: DataSource.Factory = DefaultHttpDataSource.Factory()
     private var pagerAdapter: ScreenSlidePagerAdapter? = null
     private var loading = false
     private val ioScope = CoroutineScope(Job() + Dispatchers.IO)
@@ -270,7 +271,7 @@ open class MediaSliderView(context: Context) : ConstraintLayout(context) {
         controller.onDestroy()
     }
 
-    fun setDefaultExoFactory(defaultExoFactory: DefaultHttpDataSource.Factory) {
+    fun setDefaultExoFactory(defaultExoFactory: DataSource.Factory) {
         this.defaultExoFactory = defaultExoFactory
     }
 
@@ -309,7 +310,7 @@ open class MediaSliderView(context: Context) : ConstraintLayout(context) {
 
     companion object {
         @SuppressLint("UnsafeOptInUsageError")
-        fun prepareMedia(mediaUrl: String, player: ExoPlayer, factory: DefaultHttpDataSource.Factory) {
+        fun prepareMedia(mediaUrl: String, player: ExoPlayer, factory: DataSource.Factory) {
             val mediaUri = Uri.parse(mediaUrl)
             val mediaItem = MediaItem.fromUri(mediaUri)
             val mediaSource = ProgressiveMediaSource.Factory(factory).createMediaSource(mediaItem)
