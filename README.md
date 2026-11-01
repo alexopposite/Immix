@@ -72,9 +72,7 @@ More info here: https://github.com/immich-app/immich
 
 This app is compatible with Immich server **v3.0.0 and newer**. Immich 3.0.0 introduced several
 breaking API changes (album asset loading via `search/metadata`, search visibility defaults,
-error response format); this app has been adapted accordingly. No additional API key permissions
-are required for v3 compared to earlier versions — the existing `asset.read`/`album.read`
-permissions listed below already cover the endpoints this app uses.
+error response format); this app has been adapted accordingly. The feature-by-feature API-key permissions for this revived branch are documented below.
 
 This Android TV app will allow you to view those uploaded photos and videos. Current features
 include:
@@ -104,27 +102,86 @@ include:
 | Searching in and for albums                                                    | Todo         |
 | Dependency injection with Hilt/Dagger                                          | Todo         |
 
-## Required API Permissions
+## Immich connection and API-key permissions
 
-When setting up your API key in Immich, make sure to grant the following permissions for the app to function properly:
+These instructions apply to the revived Immix branch and were checked against the app's
+API calls and Immich **3.3.0** server permission declarations. On-device testing is still pending.
+The inherited upstream permission list was broader than the endpoints this client uses.
 
-- `activity.read` - Read activity data
-- `album.download` - Download album content
-- `album.read` - Read album information
-- `archive.read` - Read archived items
-- `asset.download` - Download assets for viewing
-- `asset.read` - Read asset metadata
-- `asset.view` - View assets (photos/videos)
-- `face.read` - Read face detection data
-- `folder.read` - Read folder information
-- `library.read` - Read library information
-- `memory.read` - Read memory/moment data
-- `partner.read` - Read partner sharing data
-- `person.read` - Read person/people data
-- `session.read` - Read session information
-- `tag.asset` - Read asset tag associations
-- `tag.read` - Read tag information
-- `timeline.read` - Read timeline data
+### Create the key
+
+1. Use a normal, non-admin Immich account. A dedicated **Photo Frame** account is recommended;
+   share only the desired albums with it as **Viewer**. An existing account also works, but its
+   key can access that account's permitted library, not just albums selected in Immix.
+2. Sign in to that account in the Immich web interface, open **Account Settings → API Keys**,
+   and create a dedicated key named, for example, `Nixplay Immix`.
+3. For the complete read-only browsing interface, select these seven permissions:
+
+   ```text
+   album.read
+   asset.read
+   asset.view
+   asset.download
+   person.read
+   memory.read
+   folder.read
+   ```
+
+   Do not select every permission. No administrative, upload, delete, album-editing,
+   or API-key-management permissions are needed to display photos.
+4. In Immix, choose **Sign in by API key**, enter the Immich server's base URL
+   (for example `https://photos.example.com`, without `/api`) and the generated key.
+   Leave **Disable SSL verification** and **Debug mode** unchecked.
+   This build connects directly to Immich; no ImmichFrame companion service is needed.
+5. Select the desired album(s) in the app. Do not put a real key in source files, screenshots,
+   issue reports, or a chat. Revoke the dedicated key in Immich if retiring the frame.
+
+### Which features need which permissions?
+
+| Permission | Use in this client |
+| --- | --- |
+| `album.read` | List albums and retrieve the selected album's metadata. |
+| `asset.read` | Read asset metadata; search album/random/recent photos; load timeline buckets. |
+| `asset.view` | Display previews/thumbnails and stream video playback. |
+| `asset.download` | Retrieve original files when original-quality media is requested. |
+| `person.read` | People browsing and person thumbnails; optional if those features are not used. |
+| `memory.read` | Memories; optional if memories are not used. |
+| `folder.read` | Folder/path browsing; optional if folders are not used. |
+
+For an album-only slideshow trial, start with the first four permissions. The other three
+are recommended for the full browsing interface, since it may request data for those sections;
+with a smaller key, unused sections may display permission errors. This smaller profile has
+not yet been tested on the frame.
+
+A key's permissions restrict operations, while the account and album-sharing permissions
+restrict which photos it can access. Selecting an album in Immix is a display filter, not
+an access-control boundary. A Viewer account may also be unable to change shared assets,
+regardless of which API-key scopes are selected.
+
+### Optional write permission: favorites
+
+`asset.update` is required only if you want Immix's favorite/unfavorite control to change an
+asset on the server. **Leave it off for a read-only frame.** Slideshow playback does not need it;
+favorite changes will fail with the app's error message. This permission permits other asset
+updates too, so it is broader than a favorites-only grant.
+
+### Why the older list is not required
+
+This client does not call endpoints requiring `activity.read`, `album.download`, `archive.read`,
+`face.read`, `library.read`, `partner.read`, `session.read`, `tag.asset`, `tag.read`, or
+`timeline.read`. In Immich 3.3.0, the timeline bucket endpoints used here require `asset.read`,
+not `timeline.read`. This is based on the current client endpoint inventory, not a promise that
+future client/server versions will never need additional permissions.
+
+References: [client endpoint interface](app/src/main/java/nl/giejay/android/tv/immich/api/service/ApiService.kt),
+[favorite action](app/src/main/java/nl/giejay/android/tv/immich/slider/FavoriteService.kt), and the
+Immich 3.3.0 [album](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/album.controller.ts),
+[search](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/search.controller.ts),
+[media](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/asset-media.controller.ts),
+[timeline](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/timeline.controller.ts),
+[people](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/person.controller.ts),
+[memory](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/memory.controller.ts),
+and [folder](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/view.controller.ts) controllers.
 
 ## Screenshots
 
