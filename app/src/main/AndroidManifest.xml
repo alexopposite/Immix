@@ -17,6 +17,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="org.immix.frame.permission.BIND_HARDWARE" />
     <!-- Access internet-based media -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -38,6 +39,7 @@
         android:name="android.software.leanback"
         android:required="false" />
 
+    <queries><package android:name="org.immix.frame.hardware" /></queries>
     <application
         android:name="nl.giejay.android.tv.immich.ImmichApplication"
         android:allowBackup="true"

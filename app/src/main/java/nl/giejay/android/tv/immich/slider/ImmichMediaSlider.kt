@@ -45,7 +45,7 @@ class ImmichMediaSlider : MediaSliderFragment() {
             return
         }
 
-        config.keepScreenOn = nl.giejay.android.tv.immich.ImmichApplication.activitySensor == null
+        config.allowKeepScreenOn = { !nl.giejay.android.tv.immich.ImmichApplication.frameHardwareManaged }
 
         setDefaultExoFactory(
             OkHttpDataSource.Factory(ApiClientFactory.getClient(

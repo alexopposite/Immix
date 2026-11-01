@@ -1,5 +1,7 @@
 # Immix revival: upstream 6.2.0
 
+> Historical merge snapshot. Subsequent ordinary-app trials are recorded in [DEVICE-TRIAL.md](DEVICE-TRIAL.md). The separate [hardware helper](FRAME-HARDWARE.md) now supersedes the retained in-app native poller and remote-power behavior described below. Current combined builds have 150 passing unit tests. No permanent helper startup has been installed.
+
 Branch: `revive/merge-upstream-6.2.0`
 
 Original Immix: `c9dcea6`

@@ -93,12 +93,7 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_POWER || keyCode == KeyEvent.KEYCODE_F1) {
-            ImmichApplication.activitySensor?.let {
-                it.powerButtonPressed()
-                return true
-            }
-        }
+        ImmichApplication.hardwareClient?.reportUserActivity()
         keyEventsModel.postKeyEvent(event)
         return super.onKeyDown(keyCode, event)
     }

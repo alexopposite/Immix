@@ -3,7 +3,6 @@ package nl.giejay.android.tv.immich.settings
 import android.app.Activity
 import android.content.Intent
 import android.provider.Settings
-import nl.giejay.android.tv.immich.shared.prefs.NixplayPrefScreen
 import androidx.leanback.app.RowsSupportFragment
 import androidx.leanback.widget.ArrayObjectAdapter
 import androidx.leanback.widget.HeaderItem
@@ -99,9 +98,12 @@ class SettingsFragment : RowsSupportFragment() {
                                 HomeFragmentDirections.actionGlobalToSettingsDialog(DebugPrefScreen.key)
                             )
                         },
-                        SettingsCard("Nixplay hardware", null, "nixplay", "ic_settings_settings", "ic_settings_settings") {
-                            findNavController().navigate(
-                                HomeFragmentDirections.actionGlobalToSettingsDialog(NixplayPrefScreen.key))
+                        SettingsCard("Frame Hardware", null, "frame_hardware", "ic_settings_settings", "ic_settings_settings") {
+                            try {
+                                startActivity(Intent().setComponent(org.immix.frame.FrameContract.SETTINGS))
+                            } catch (error: android.content.ActivityNotFoundException) {
+                                android.widget.Toast.makeText(requireContext(), "Frame Hardware helper is not installed", android.widget.Toast.LENGTH_LONG).show()
+                            }
                         },
                         SettingsCard("Android Settings", null, "android_settings", "ic_settings_settings", "ic_settings_settings") {
                             startActivity(Intent(Settings.ACTION_SETTINGS))

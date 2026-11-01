@@ -17,14 +17,15 @@ package nl.giejay.android.tv.immich
 
 import android.app.Application
 import android.content.Context
+import android.app.Activity
+import android.os.Bundle
+import android.view.WindowManager
+import java.lang.ref.WeakReference
+import org.immix.frame.FrameContract
+import org.immix.frame.FrameHardwareClient
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import android.os.Handler
-import android.os.Looper
-import java.io.File
-import com.kitesystems.nix.frame.MotionSensor
-import nl.giejay.android.tv.immich.sensors.ActivitySensor
 import nl.giejay.android.tv.immich.homescreenchannels.HomeScreenChannelManager
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
 import nl.giejay.android.tv.immich.shared.prefs.USER_ID
@@ -54,16 +55,24 @@ class ImmichApplication : Application() {
             userId = UUID.randomUUID().toString()
             PreferenceManager.save(USER_ID, userId)
         }
-        if (File("/etc/nix.model").exists() && MotionSensor.isAvailable()) {
-            activitySensor = ActivitySensor(this)
-            val handler = Handler(Looper.getMainLooper())
-            handler.post(object : Runnable {
-                override fun run() {
-                    activitySensor?.checkSensors()
-                    handler.postDelayed(this, 1000L)
-                }
-            })
+        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityResumed(activity: Activity) { visibleActivity = WeakReference(activity) }
+            override fun onActivityPaused(activity: Activity) {
+                if (visibleActivity?.get() === activity) visibleActivity = null
+            }
+            override fun onActivityCreated(activity: Activity, state: Bundle?) {}
+            override fun onActivityStarted(activity: Activity) {}
+            override fun onActivityStopped(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) {}
+            override fun onActivityDestroyed(activity: Activity) {}
+        })
+        hardwareClient = FrameHardwareClient(this) { state ->
+            frameHardwareManaged = state.getBoolean(FrameContract.MANAGED, false)
+            if (frameHardwareManaged) {
+                visibleActivity?.get()?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
         }
+        hardwareClient?.connect()
 
         HomeScreenChannelManager.initSubscriptions()
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
@@ -75,7 +84,9 @@ class ImmichApplication : Application() {
 
     companion object {
         var appContext: Context? = null
-        var activitySensor: ActivitySensor? = null
+        var hardwareClient: FrameHardwareClient? = null
+        @Volatile var frameHardwareManaged = false
+        private var visibleActivity: WeakReference<Activity>? = null
     }
 
 }

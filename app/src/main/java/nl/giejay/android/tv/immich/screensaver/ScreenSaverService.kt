@@ -68,7 +68,7 @@ class ScreenSaverService : DreamService(), MediaSliderListener, ScreenSaverAsset
     }
 
     override fun onScreenSaverConfigurationReady(configuration: MediaSliderConfiguration) {
-        configuration.keepScreenOn = nl.giejay.android.tv.immich.ImmichApplication.activitySensor == null
+        configuration.allowKeepScreenOn = { !nl.giejay.android.tv.immich.ImmichApplication.frameHardwareManaged }
         mediaSliderView?.loadMediaSliderView(configuration)
         mediaSliderView?.toggleSlideshow(false)
     }

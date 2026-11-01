@@ -40,6 +40,3 @@
 # by fully-qualified name from nav_graph.xml's argType -- all of this breaks silently under R8
 # renaming/shrinking without keeping the whole package intact.
 -keep class nl.giejay.android.tv.immich.shared.prefs.** { *; }
-# The firmware's gpio_jni library may register its full native method table at load time.
-# Keep even unused bridge methods (e.g. setWakeOnMotion) and the exact JNI class name.
--keep class com.kitesystems.nix.frame.MotionSensor { *; }

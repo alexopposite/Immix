@@ -1,0 +1,21 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <permission android:name="org.immix.frame.permission.BIND_HARDWARE" android:protectionLevel="signature" />
+    <uses-permission android:name="org.immix.frame.permission.BIND_HARDWARE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <application android:theme="@android:style/Theme.Material.Light" android:label="Frame Hardware"
+        android:allowBackup="false">
+        <activity android:name=".SettingsActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <service android:name=".FrameService" android:exported="true"
+            android:permission="org.immix.frame.permission.BIND_HARDWARE"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Dedicated frame hardware observation and owner-controlled presence power policy" />
+        </service>
+    </application>
+</manifest>

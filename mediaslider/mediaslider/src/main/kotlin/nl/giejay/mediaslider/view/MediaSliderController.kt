@@ -740,7 +740,7 @@ class MediaSliderController(
     }
 
     fun setKeepScreenOnFlags() {
-        if (config.keepScreenOn && context is Activity) {
+        if (config.keepScreenOn && config.allowKeepScreenOn() && context is Activity) {
             val window = context.window
             window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             Timber.d("set FLAG_KEEP_SCREEN_ON")
