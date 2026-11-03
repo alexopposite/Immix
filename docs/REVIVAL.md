@@ -53,4 +53,4 @@ No Firebase project or google-services.json is required. Default resource values
 
 ## Repository setup
 
-`origin` points at the original Immix repository; `upstream` points at giejay/Immich-Android-TV. Do not push until a user-owned fork is selected. No remote fork was created.
+`origin` now points at the personal fork alexopposite/Immix; `immix-upstream` preserves the original Immix remote and `upstream` points at giejay/Immich-Android-TV. See [fork workflow](FORK-WORKFLOW.md) for the branch comparisons and original baseline.

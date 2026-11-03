@@ -6,6 +6,8 @@
 
 # Immix
 
+See [personal fork workflow and branch comparisons](docs/FORK-WORKFLOW.md) for the original baseline, upstream revival and separate hardware-helper review.
+
 ## Fork Notice
 _THIS IS A FORK_ of `Immich Android TV` specifically tailored for use on a Nixplay frame.
 
