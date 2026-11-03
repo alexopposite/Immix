@@ -1,0 +1,21 @@
+plugins { alias libs.plugins.android.application }
+android {
+    namespace 'org.immix.frame.hardware'
+    compileSdk 37
+    defaultConfig {
+        applicationId 'org.immix.frame.hardware'
+        minSdk 24
+        targetSdk 37
+        versionCode 2
+        versionName '0.2.0'
+    }
+    buildTypes { release { minifyEnabled false } }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+dependencies {
+    implementation project(':frame-contract')
+    testImplementation libs.junit
+}

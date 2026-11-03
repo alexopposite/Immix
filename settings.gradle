@@ -27,3 +27,5 @@ rootProject.name = "Immich TV"
 include ':mediaslider:mediaslider'
 
 
+
+include ':frame-contract', ':frame-hardware'

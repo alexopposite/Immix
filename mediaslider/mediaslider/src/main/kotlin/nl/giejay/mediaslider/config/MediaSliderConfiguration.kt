@@ -35,7 +35,11 @@ class MediaSliderConfiguration(
     var viewPlugins: List<SliderViewPlugin<*>> = emptyList(),
     var keyEventPlugins: List<SliderKeyEventPlugin> = emptyList(),
     /** False when the host manages screen power itself, e.g. a motion-controlled frame. */
-    var keepScreenOn: Boolean = true
+    var keepScreenOn: Boolean = true,
+    /** Consulted at each playback request; the host can change power ownership at runtime. */
+    var allowKeepScreenOn: () -> Boolean = { true },
+    /** Optional host-owned request tracking, including requests made while hardware owns power. */
+    var screenOnRequest: ((android.app.Activity, Boolean) -> Unit)? = null
 ) {
     val isGradiantOverlayVisible: Boolean
         get() = (metaDataConfig.isNotEmpty()) && this.gradiantOverlay

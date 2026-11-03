@@ -1,5 +1,7 @@
 # Immix revival: upstream 6.2.0
 
+> Historical merge snapshot. Subsequent ordinary-app trials are recorded in [DEVICE-TRIAL.md](DEVICE-TRIAL.md). The separate [hardware helper](FRAME-HARDWARE.md) now supersedes the retained in-app native poller and remote-power behavior described below. Current combined builds have 150 passing unit tests. No permanent helper startup has been installed.
+
 Branch: `revive/merge-upstream-6.2.0`
 
 Original Immix: `c9dcea6`
@@ -51,4 +53,4 @@ No Firebase project or google-services.json is required. Default resource values
 
 ## Repository setup
 
-`origin` points at the original Immix repository; `upstream` points at giejay/Immich-Android-TV. Do not push until a user-owned fork is selected. No remote fork was created.
+`origin` now points at the personal fork alexopposite/Immix; `immix-upstream` preserves the original Immix remote and `upstream` points at giejay/Immich-Android-TV. See [fork workflow](FORK-WORKFLOW.md) for the branch comparisons and original baseline.

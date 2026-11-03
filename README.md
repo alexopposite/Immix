@@ -1,14 +1,17 @@
 > **Local revival work:** this branch merges Immich Android TV 6.2.0 into Immix.
 > See [revival notes](docs/REVIVAL.md) for changes, build status and hardware limitations.
 > The historical installation procedure below is not an approved procedure for W10F-03.
-> No frame deployment has been performed.
+> Ordinary-app trials have now run on W10F-03; see [device results](docs/DEVICE-TRIAL.md).
+> The new [hardware helper](docs/FRAME-HARDWARE.md) replaces the inherited in-app sensor implementation. Its root adapter is temporary; automatic startup is not installed.
 
 # Immix
+
+See [personal fork workflow and branch comparisons](docs/FORK-WORKFLOW.md) for the original baseline, upstream revival and separate hardware-helper review.
 
 ## Fork Notice
 _THIS IS A FORK_ of `Immich Android TV` specifically tailored for use on a Nixplay frame.
 
-It has the following changes:
+The original fork had the following changes (hardware behavior is superseded by the helper linked above):
 - Added Android Settings to settings page
 - Added motion sensor to turn the display on, set the wakelock in the settings. Default value: 15 minutes.
 - Added POWER button on remote to turn of screen (after display turnoff time)
@@ -17,7 +20,7 @@ It has the following changes:
 - Removed all Firebase and Cast functionality
 - Removed donation button as it is not working on the frame. Feel free to support the original author: https://github.com/giejay/Immich-Android-TV
 
-## How to install
+## Historical W10E installation (not the current W10F-03 procedure)
 
 Disclaimer: This guide is based on the W10E model. Please note that improper handling or software errors may damage your device. You are the only one responsible for any damages caused by your modification to either hardware or software.
 
@@ -160,7 +163,7 @@ System-app UIDs are deliberately rejected pending separate review.
 The app attempts to encrypt provisioned credentials on its next launch using Android Keystore.
 Verify that this succeeds on the actual frame: the current app can fall back to plaintext
 if the keystore fails. Until that launch, the provisioned key is plaintext in private app storage.
-The helper is locally tested with synthetic credentials; actual device provisioning remains untested.
+The provisioning helper was tested with synthetic credentials and on this W10F-03. On-device preferences were verified encrypted after launch; see the device trial report.
 
 ### Which features need which permissions?
 

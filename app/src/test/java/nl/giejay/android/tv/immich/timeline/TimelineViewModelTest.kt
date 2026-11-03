@@ -5,6 +5,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -433,8 +436,6 @@ class TimelineViewModelTest {
     @Test
     fun `prefetchAroundDay loads focus month plus neighbors`() = runTest {
         val fetches = AtomicInteger(0)
-        // Debouncer + Dispatchers.IO are real threads; wait for the 3 neighbor fetches.
-        val fetchLatch = CountDownLatch(3)
         val vm = TimelineViewModel(
             fetchBuckets = {
                 Either.Right(
@@ -448,11 +449,7 @@ class TimelineViewModelTest {
             },
             fetchBucket = { key ->
                 fetches.incrementAndGet()
-                try {
-                    Either.Right(listOf(asset("$key-a", createdAt = "${key.take(8)}15T12:00:00Z")))
-                } finally {
-                    fetchLatch.countDown()
-                }
+                Either.Right(listOf(asset("$key-a", createdAt = "${key.take(8)}15T12:00:00Z")))
             },
             prefetchDebounceMs = 0
         )
@@ -464,10 +461,17 @@ class TimelineViewModelTest {
         assertEquals(0, fetches.get())
 
         vm.prefetchAroundDay("2026-06-15")
-        // 2s was tight enough to flake on loaded/shared CI runners (real Debouncer + Dispatchers.IO
-        // threads, not virtual time) even though the fetches themselves are effectively instant.
-        assertTrue(fetchLatch.await(10, TimeUnit.SECONDS))
+        // A fetch returning does not mean loadBucket has published its result yet.
+        // Wait for the observable cache on real threads, where the debouncer/IO work runs.
+        runBlocking(Dispatchers.Default) {
+            withTimeout(10_000) {
+                vm.bucketAssets.first { assets ->
+                    listOf("2026-06-01", "2026-07-01", "2026-05-01").all(assets::containsKey)
+                }
+            }
+        }
         advanceUntilIdle()
+        assertEquals(3, fetches.get())
 
         assertTrue(vm.bucketAssets.value.containsKey("2026-06-01"))
         assertTrue(vm.bucketAssets.value.containsKey("2026-07-01"))

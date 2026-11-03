@@ -93,12 +93,9 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_POWER || keyCode == KeyEvent.KEYCODE_F1) {
-            ImmichApplication.activitySensor?.let {
-                it.powerButtonPressed()
-                return true
-            }
-        }
+        val powerKey = keyCode == KeyEvent.KEYCODE_POWER || keyCode == KeyEvent.KEYCODE_F1
+        if (powerKey && ImmichApplication.hardwareClient?.requestPowerToggle(event?.repeatCount ?: 0) == true) return true
+        if (!powerKey) ImmichApplication.hardwareClient?.reportUserActivity()
         keyEventsModel.postKeyEvent(event)
         return super.onKeyDown(keyCode, event)
     }
