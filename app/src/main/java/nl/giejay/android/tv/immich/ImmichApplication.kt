@@ -20,7 +20,9 @@ import android.content.Context
 import android.app.Activity
 import android.os.Bundle
 import android.view.WindowManager
-import java.lang.ref.WeakReference
+import nl.giejay.android.tv.immich.power.PlaybackPowerPolicy
+import nl.giejay.android.tv.immich.shared.prefs.WAKE_LOCK_MINUTES
+import nl.giejay.android.tv.immich.shared.prefs.legacyMotionTimeoutMinutes
 import org.immix.frame.FrameContract
 import org.immix.frame.FrameHardwareClient
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -56,22 +58,19 @@ class ImmichApplication : Application() {
             PreferenceManager.save(USER_ID, userId)
         }
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
-            override fun onActivityResumed(activity: Activity) { visibleActivity = WeakReference(activity) }
-            override fun onActivityPaused(activity: Activity) {
-                if (visibleActivity?.get() === activity) visibleActivity = null
-            }
+            override fun onActivityResumed(activity: Activity) {}
+            override fun onActivityPaused(activity: Activity) {}
             override fun onActivityCreated(activity: Activity, state: Bundle?) {}
             override fun onActivityStarted(activity: Activity) {}
             override fun onActivityStopped(activity: Activity) {}
             override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) {}
-            override fun onActivityDestroyed(activity: Activity) {}
+            override fun onActivityDestroyed(activity: Activity) { playbackPower.release(activity) }
         })
-        hardwareClient = FrameHardwareClient(this) { state ->
+        val legacyTimeout = legacyMotionTimeoutMinutes(PreferenceManager.sharedPreference.all[WAKE_LOCK_MINUTES.key()])
+        hardwareClient = FrameHardwareClient(this, { state ->
             frameHardwareManaged = state.getBoolean(FrameContract.MANAGED, false)
-            if (frameHardwareManaged) {
-                visibleActivity?.get()?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            }
-        }
+            playbackPower.setManaged(frameHardwareManaged)
+        }, legacyTimeout)
         hardwareClient?.connect()
 
         HomeScreenChannelManager.initSubscriptions()
@@ -86,7 +85,13 @@ class ImmichApplication : Application() {
         var appContext: Context? = null
         var hardwareClient: FrameHardwareClient? = null
         @Volatile var frameHardwareManaged = false
-        private var visibleActivity: WeakReference<Activity>? = null
+        private val playbackPower = PlaybackPowerPolicy<Activity> { activity, keepOn ->
+            if (keepOn) activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            else activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        fun requestPlaybackScreenOn(activity: Activity, requested: Boolean) {
+            playbackPower.request(activity, requested)
+        }
     }
 
 }

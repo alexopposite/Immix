@@ -68,12 +68,17 @@ class ScreenSaverService : DreamService(), MediaSliderListener, ScreenSaverAsset
     }
 
     override fun onScreenSaverConfigurationReady(configuration: MediaSliderConfiguration) {
-        configuration.allowKeepScreenOn = { !nl.giejay.android.tv.immich.ImmichApplication.frameHardwareManaged }
+        configuration.screenOnRequest = { activity, requested ->
+            nl.giejay.android.tv.immich.ImmichApplication.requestPlaybackScreenOn(activity, requested)
+        }
         mediaSliderView?.loadMediaSliderView(configuration)
         mediaSliderView?.toggleSlideshow(false)
     }
 
     override fun onButtonPressed(keyEvent: KeyEvent): Boolean {
+        val powerKey = keyEvent.keyCode == KeyEvent.KEYCODE_POWER || keyEvent.keyCode == KeyEvent.KEYCODE_F1
+        if (powerKey && nl.giejay.android.tv.immich.ImmichApplication.hardwareClient?.requestPowerToggle(keyEvent.repeatCount) == true) return true
+        if (!powerKey) nl.giejay.android.tv.immich.ImmichApplication.hardwareClient?.reportUserActivity()
         if ((keyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyEvent.keyCode == KeyEvent.KEYCODE_ENTER) && mediaSliderView?.isControllerVisible() == false) {
             finish()
             return true

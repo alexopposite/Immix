@@ -49,6 +49,7 @@ object PreferenceManager {
 
     fun init(context: Context) {
         sharedPreference = PreferenceManager.getDefaultSharedPreferences(context)
+        normalizeLegacyMotionTimeoutStorage(sharedPreference)
         liveSharedPreferences = LiveSharedPreferences(sharedPreference)
         migrateApiKeyIfNeeded()
         subclasses(Pref::class).filter { it.objectInstance != null }.forEach { pref ->

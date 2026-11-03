@@ -64,4 +64,43 @@ public class FramePolicyTest {
         p.manualOff = true;
         assertEquals(FramePolicy.Decision.ASLEEP, p.decide(999999, 0));
     }
+    @Test public void powerButtonSleepsThenSecondPressWakesAndResetsTimeout() {
+        FramePolicy p = enabled();
+        assertTrue(p.togglePower(2000, true));
+        assertEquals("remote_sleep", p.reason(2001, 999999));
+        assertEquals(FramePolicy.Decision.ASLEEP, p.decide(2001, 999999));
+        assertTrue(p.togglePower(3000, false));
+        assertEquals(FramePolicy.Decision.AWAKE, p.decide(12999, 0));
+        assertEquals(FramePolicy.Decision.ASLEEP, p.decide(13000, 0));
+    }
+    @Test public void powerButtonWakesAfterNaturalInactivity() {
+        FramePolicy p = enabled();
+        assertEquals(FramePolicy.Decision.ASLEEP, p.decide(20000, 0));
+        assertTrue(p.togglePower(20000, false));
+        assertEquals(FramePolicy.Decision.AWAKE, p.decide(20000, 0));
+    }
+    @Test public void regularUserActivityClearsRemoteSleep() {
+        FramePolicy p = enabled();
+        p.togglePower(2000, true);
+        p.activity(3000);
+        assertEquals(FramePolicy.Decision.AWAKE, p.decide(3001, 0));
+    }
+    @Test public void observationAndQuietHoursDoNotAcceptPowerToggle() {
+        FramePolicy p = new FramePolicy(0);
+        assertFalse(p.togglePower(10, true));
+        p.enabled = true; p.quietHours = true;
+        assertFalse(p.togglePower(20, false));
+    }
+    @Test public void alwaysOnStillAllowsRemoteSleepAndMotionWake() {
+        FramePolicy p = enabled(); p.timeoutMillis = 0;
+        p.togglePower(2000, true);
+        assertEquals(FramePolicy.Decision.ASLEEP, p.decide(3000, 0));
+        p.motion(4000, true);
+        assertEquals(FramePolicy.Decision.AWAKE, p.decide(4000, 0));
+    }
+    @Test public void explicitOwnerResetClearsRemoteSleep() {
+        FramePolicy p = enabled(); p.togglePower(2000, true);
+        p.resetActivity(3000);
+        assertEquals(FramePolicy.Decision.AWAKE, p.decide(3000, 0));
+    }
 }

@@ -9,4 +9,6 @@ interface IFrameHardware {
     void reportUserActivity();
     boolean acquireAwakeLease(IBinder owner, long durationMillis);
     void releaseAwakeLease(IBinder owner);
+    boolean requestPowerToggle();
+    void offerLegacyTimeoutMinutes(int minutes);
 }

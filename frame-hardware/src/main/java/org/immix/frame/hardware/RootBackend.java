@@ -41,7 +41,7 @@ public final class RootBackend {
         if (Process.myUid() != 0) throw new SecurityException("Root backend requires UID 0");
         if (args.length == 2 && args[0].equals("--command")) {
             String command = args[1];
-            if (!java.util.Arrays.asList("POLL", "STOP", "OBSERVE", "MANAGE", "WAKE", "SLEEP").contains(command))
+            if (!java.util.Arrays.asList("POLL", "STOP", "OBSERVE", "MANAGE", "HOLD", "RELEASE", "WAKE", "SLEEP").contains(command))
                 throw new IllegalArgumentException("Unsupported command");
             System.out.println(new BackendClient().command(command));
             return;
@@ -64,6 +64,10 @@ public final class RootBackend {
         boolean wasPowered = motion.readMotionSensorPower();
         PowerManager.WakeLock cpu = power.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "FrameHardware:motion-monitor");
         cpu.setReferenceCounted(false);
+        // W10F-03 runs Android 7: keep the display bright for the full activity interval,
+        // independently of Android's screen timeout. Never use an unbounded display lock.
+        PowerManager.WakeLock display = power.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "FrameHardware:display");
+        display.setReferenceCounted(false);
         AtomicBoolean sleptByBackend = new AtomicBoolean(false);
         AtomicLong heartbeat = new AtomicLong(0);
         ScheduledExecutorService watchdog = Executors.newSingleThreadScheduledExecutor();
@@ -73,6 +77,7 @@ public final class RootBackend {
                 if (heartbeat.get() > 0 && SystemClock.elapsedRealtime() - heartbeat.get() > 10_000L) {
                     try {
                         if (sleptByBackend.getAndSet(false)) wake.invoke(power, SystemClock.uptimeMillis());
+                        if (display.isHeld()) display.release();
                         if (cpu.isHeld()) cpu.release();
                     } catch (Exception ignored) {}
                 }
@@ -106,7 +111,17 @@ public final class RootBackend {
                             case "OBSERVE":
                                 heartbeat.set(0);
                                 if (sleptByBackend.getAndSet(false)) wake.invoke(power, SystemClock.uptimeMillis());
+                                if (display.isHeld()) display.release();
                                 if (cpu.isHeld()) cpu.release();
+                                writer.println("OK");
+                                break;
+                            case "HOLD":
+                                if (heartbeat.get() == 0) throw new SecurityException("Management heartbeat required");
+                                display.acquire(30_000L);
+                                writer.println("OK");
+                                break;
+                            case "RELEASE":
+                                if (display.isHeld()) display.release();
                                 writer.println("OK");
                                 break;
                             case "WAKE":
@@ -116,6 +131,7 @@ public final class RootBackend {
                                 break;
                             case "SLEEP":
                                 if (heartbeat.get() == 0) throw new SecurityException("Management heartbeat required");
+                                if (display.isHeld()) display.release();
                                 sleep.invoke(power, SystemClock.uptimeMillis());
                                 sleptByBackend.set(true);
                                 writer.println("OK");
@@ -132,6 +148,7 @@ public final class RootBackend {
         } finally {
             watchdog.shutdownNow();
             if (sleptByBackend.get()) try { wake.invoke(power, SystemClock.uptimeMillis()); } catch (Exception ignored) {}
+            if (display.isHeld()) display.release();
             if (cpu.isHeld()) cpu.release();
             motion.setMotionSensorPower(wasPowered);
         }

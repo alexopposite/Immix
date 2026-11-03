@@ -27,13 +27,12 @@ public final class FrameService extends Service {
     static volatile FrameService instance;
     private HandlerThread thread;
     private Handler worker;
-    private final BackendClient backend = new BackendClient();
+    private final SocketHardwareAdapter hardware = new SocketHardwareAdapter();
     private final RemoteCallbackList<IFrameListener> listeners = new RemoteCallbackList<>();
     private final Map<IBinder, Lease> leases = new HashMap<>();
     private final FramePolicy policy = new FramePolicy(SystemClock.elapsedRealtime());
     private volatile Bundle state = new Bundle();
-    private long lastMotion = -1;
-    private boolean nativeAvailable;
+    private final FrameController controller = new FrameController(hardware, hardware, policy);
     private boolean foreground;
     private String previousSignature = "";
     private final String providerInstance = java.util.UUID.randomUUID().toString();
@@ -60,6 +59,32 @@ public final class FrameService extends Service {
         @Override public void reportUserActivity() {
             enforceClient();
             worker.post(() -> policy.activity(SystemClock.elapsedRealtime()));
+        }
+        @Override public boolean requestPowerToggle() {
+            enforceClient();
+            if (!state.getBoolean(FrameContract.POWER_BUTTON_SUPPORTED, false)) return false;
+            worker.post(() -> {
+                boolean displayOn = ((PowerManager) getSystemService(POWER_SERVICE)).isInteractive();
+                policy.togglePower(SystemClock.elapsedRealtime(), displayOn);
+                pollSoon();
+            });
+            return true;
+        }
+        @Override public void offerLegacyTimeoutMinutes(int minutes) {
+            enforceClient();
+            // Migration is restricted to the legacy app, not every future display client.
+            int caller = Binder.getCallingUid();
+            try {
+                if (getPackageManager().getApplicationInfo("nl.giejay.android.tv.immich", 0).uid != caller) return;
+            } catch (android.content.pm.PackageManager.NameNotFoundException ignored) { return; }
+            worker.post(() -> {
+                Long value = LegacyTimeoutMigration.candidate(preferences.contains("timeout_ms"), minutes);
+                if (value != null) {
+                    preferences.edit().putLong("timeout_ms", value).putString("timeout_source", "legacy_immix").apply();
+                    policy.timeoutMillis = value;
+                    pollSoon();
+                }
+            });
         }
         @Override public boolean acquireAwakeLease(IBinder owner, long durationMillis) {
             enforceClient();
@@ -150,44 +175,27 @@ public final class FrameService extends Service {
     private final Runnable tick = new Runnable() {
         @Override public void run() {
             long now = SystemClock.elapsedRealtime();
-            String error = "";
-            nativeAvailable = false;
-            boolean interactive = ((PowerManager) getSystemService(POWER_SERVICE)).isInteractive();
-            try {
-                String[] sample = backend.command("POLL").split(" ");
-                if (sample.length != 3) throw new IllegalStateException();
-                nativeAvailable = true;
-                if ("1".equals(sample[1])) { lastMotion = now; policy.activity(now); }
-                interactive = "1".equals(sample[2]);
-            } catch (Exception e) { error = "hardware_backend_unavailable"; }
             Calendar clock = Calendar.getInstance();
             policy.quietHours = FramePolicy.inQuietHours(clock.get(Calendar.HOUR_OF_DAY) * 60 + clock.get(Calendar.MINUTE),
                     preferences.getInt("quiet_start", -1), preferences.getInt("quiet_end", -1));
             long until = leaseUntil(now);
-            FramePolicy.Decision decision = policy.decide(now, until);
-            boolean managed = false;
-            if (nativeAvailable) {
-                try {
-                    backend.command(policy.enabled ? "MANAGE" : "OBSERVE");
-                    if (policy.enabled) {
-                        managed = true;
-                        if (decision == FramePolicy.Decision.AWAKE && !interactive) backend.command("WAKE");
-                        if (decision == FramePolicy.Decision.ASLEEP && interactive) backend.command("SLEEP");
-                    }
-                } catch (Exception e) { error = "power_control_unavailable"; managed = false; }
-            }
+            FrameController.Snapshot sample = controller.tick(now, until);
+            long lastMotion = sample.lastMotion;
             Bundle next = new Bundle();
             next.putInt(FrameContract.VERSION_KEY, FrameContract.VERSION);
-            next.putBoolean(FrameContract.MANAGED, managed);
+            next.putBoolean(FrameContract.MANAGED, sample.managed);
+            next.putBoolean(FrameContract.POWER_BUTTON_SUPPORTED, sample.managed && policy.canTogglePower());
+            next.putLong("timeout_ms", policy.timeoutMillis);
+            next.putString("timeout_source", preferences.getString("timeout_source", "default"));
             next.putBoolean(FrameContract.DISPLAY_ON, ((PowerManager) getSystemService(POWER_SERVICE)).isInteractive());
-            next.putBoolean("presence_supported", nativeAvailable);
-            next.putBoolean("power_control_supported", nativeAvailable && error.isEmpty());
+            next.putBoolean("presence_supported", sample.presenceSupported);
+            next.putBoolean("power_control_supported", sample.powerSupported);
             next.putBoolean("deep_sleep_wake_supported", false);
             next.putBoolean("cpu_monitor_required", true);
             next.putLong("last_motion_elapsed_ms", lastMotion);
             next.putString(FrameContract.PRESENCE, lastMotion < 0 ? "unknown" :
-                    now - lastMotion < 30_000L ? "recent_motion" : "no_recent_motion");
-            next.putString(FrameContract.REASON, error.isEmpty() ? policy.reason(now, until) : error);
+                    sample.presenceSupported ? (now - lastMotion < 30_000L ? "recent_motion" : "no_recent_motion") : "unknown");
+            next.putString(FrameContract.REASON, sample.error.isEmpty() ? policy.reason(now, until) : sample.error);
             Display display = ((DisplayManager) getSystemService(DISPLAY_SERVICE)).getDisplay(Display.DEFAULT_DISPLAY);
             next.putInt("display_rotation", display == null ? -1 : display.getRotation());
             next.putString("mode", policy.enabled ? "management_requested" : "observe_only");
@@ -210,13 +218,20 @@ public final class FrameService extends Service {
         if (timeoutMillis < 0 || timeoutMillis > 24 * 60 * 60_000L ||
                 quietStart < -1 || quietStart >= 1440 || quietEnd < -1 || quietEnd >= 1440 ||
                 ((quietStart < 0) != (quietEnd < 0))) throw new IllegalArgumentException();
-        preferences.edit().putLong("timeout_ms", timeoutMillis).putInt("quiet_start", quietStart).putInt("quiet_end", quietEnd).apply();
         worker.post(() -> {
+            preferences.edit().putLong("timeout_ms", timeoutMillis).putString("timeout_source", "owner")
+                    .putInt("quiet_start", quietStart).putInt("quiet_end", quietEnd).apply();
             policy.enabled = enabled; policy.manualOff = false; policy.timeoutMillis = timeoutMillis;
-            policy.activity(SystemClock.elapsedRealtime());
+            policy.resetActivity(SystemClock.elapsedRealtime());
+            pollSoon();
         });
     }
-    void manualOff(boolean off) { worker.post(() -> policy.manualOff = off); }
+    void manualOff(boolean off) { worker.post(() -> {
+        policy.manualOff = off;
+        if (!off) policy.resetActivity(SystemClock.elapsedRealtime());
+        pollSoon();
+    }); }
+    private void pollSoon() { worker.removeCallbacks(tick); worker.post(tick); }
     Bundle localState() { return new Bundle(state); }
 
     @Override protected void dump(java.io.FileDescriptor fd, java.io.PrintWriter writer, String[] args) {
@@ -231,7 +246,7 @@ public final class FrameService extends Service {
         instance = null;
         worker.removeCallbacks(tick);
         worker.post(() -> {
-            try { backend.command("OBSERVE"); } catch (Exception ignored) {}
+            controller.relinquish();
             synchronized (leases) {
                 for (IBinder token : leases.keySet().toArray(new IBinder[0])) removeLease(token);
             }
