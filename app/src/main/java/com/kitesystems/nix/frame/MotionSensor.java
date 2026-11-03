@@ -7,6 +7,10 @@ public class MotionSensor implements HardwareSensor {
     private static boolean LIBRARY_LOADED;
     private static final String LIBRARY_NAME = "gpio_jni";
 
+    public static boolean isAvailable() {
+        return LIBRARY_LOADED;
+    }
+
     public native int readMotionSensor();
 
     public native boolean readMotionSensorPower();

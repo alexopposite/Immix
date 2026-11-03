@@ -1,3 +1,8 @@
+> **Local revival work:** this branch merges Immich Android TV 6.2.0 into Immix.
+> See [revival notes](docs/REVIVAL.md) for changes, build status and hardware limitations.
+> The historical installation procedure below is not an approved procedure for W10F-03.
+> No frame deployment has been performed.
+
 # Immix
 
 ## Fork Notice
@@ -63,33 +68,146 @@ Immich is a self hosted backup solution for photos and videos. Current features 
 
 More info here: https://github.com/immich-app/immich
 
+## Compatibility
+
+This app is compatible with Immich server **v3.0.0 and newer**. Immich 3.0.0 introduced several
+breaking API changes (album asset loading via `search/metadata`, search visibility defaults,
+error response format); this app has been adapted accordingly. The feature-by-feature API-key permissions for this revived branch are documented below.
+
 This Android TV app will allow you to view those uploaded photos and videos. Current features
 include:
 
-| Features                                                                       | Status |
-|:-------------------------------------------------------------------------------|--------|
-| Sign in by phone (https://github.com/giejay/Immich-Android-TV-Authentication)  | Done   |
-| Sign in by entering API key                                                    | Done   |
-| Demo environment                                                               | Done   |
-| Album fetching + Lazy loading                                                  | Done   |
-| Showing the photos inside an album                                             | Done   |
-| Showing people, random, recent or seasonal photos                              | Done   |
-| Slideshow of the photos and videos with a configured interval                  | Done   |
-| Setting the app as the screensaver                                             | Done   |
-| Setting the albums to show in the screensaver                                  | Done   |
-| Configure the interval of the screensaver                                      | Done   |
-| Add generic sorting of albums and photos                                       | Done   |
-| Add sorting for specific album (select last item in row and press right again) | Done   |
-| Showing the 4K thumbnail instead of the full image to speed up loading         | Done   |
-| Showing the EXIF data and improving the slideshow view                         | Done   |
-| Configure whether to play sound with videos                                    | Done   |
-| Smarter merging of portrait photos (same people, same date, same city)         | Todo   |
-| Add transitions to slideshow                                                   | Todo   |
-| Add places/tags view                                                           | Todo   |
-| Add background media playing info to screensaver                               | Todo   |
-| Casting capabilities                                                           | Todo   |
-| Searching in and for albums                                                    | Todo   |
-| Dependency injection with Hilt/Dagger                                          | Todo   |
+| Features                                                                       | Status       |
+|:-------------------------------------------------------------------------------|--------------|
+| Sign in by phone (https://github.com/giejay/Immich-Android-TV-Authentication)  | Done         |
+| Sign in by entering API key                                                    | Done         |
+| Demo environment                                                               | Done         |
+| Album fetching + Lazy loading                                                  | Done         |
+| Showing the photos inside an album                                             | Done         |
+| Showing people, random, recent or seasonal photos                              | Done         |
+| Slideshow of the photos and videos with a configured interval                  | Done         |
+| Setting the app as the screensaver                                             | Done         |
+| Setting the albums to show in the screensaver                                  | Done         |
+| Configure the interval of the screensaver                                      | Done         |
+| Add generic sorting of albums and photos                                       | Done         |
+| Add sorting for specific album (select last item in row and press right again) | Done         |
+| Showing the 4K thumbnail instead of the full image to speed up loading         | Done         |
+| Showing the EXIF data and improving the slideshow view                         | Done         |
+| Configure whether to play sound with videos                                    | Done         |
+| Smarter merging of portrait photos (same people, same date, same city)         | Todo         |
+| Add transitions to slideshow                                                   | Done         |
+| Add places/tags view                                                           | Todo         |
+| Add background media playing info to screensaver                               | Todo         |
+| Casting capabilities                                                           | Out of scope |
+| Searching in and for albums                                                    | Todo         |
+| Dependency injection with Hilt/Dagger                                          | Todo         |
+
+## Immich connection and API-key permissions
+
+These instructions apply to the revived Immix branch and were checked against the app's
+API calls and Immich **3.3.0** server permission declarations. On-device testing is still pending.
+The inherited upstream permission list was broader than the endpoints this client uses.
+
+### Create the key
+
+1. Use a normal, non-admin Immich account. A dedicated **Photo Frame** account is recommended;
+   share only the desired albums with it as **Viewer**. An existing account also works, but its
+   key can access that account's permitted library, not just albums selected in Immix.
+2. Sign in to that account in the Immich web interface, open **Account Settings → API Keys**,
+   and create a dedicated key named, for example, `Nixplay Immix`.
+3. For the complete read-only browsing interface, select these seven permissions:
+
+   ```text
+   album.read
+   asset.read
+   asset.view
+   asset.download
+   person.read
+   memory.read
+   folder.read
+   ```
+
+   Do not select every permission. No administrative, upload, delete, album-editing,
+   or API-key-management permissions are needed to display photos.
+4. In Immix, choose **Sign in by API key**, enter the Immich server's base URL
+   (for example `https://photos.example.com`, without `/api`) and the generated key.
+   Leave **Disable SSL verification** and **Debug mode** unchecked.
+   This build connects directly to Immich; no ImmichFrame companion service is needed.
+5. Select the desired album(s) in the app. Do not put a real key in source files, screenshots,
+   issue reports, or a chat. Revoke the dedicated key in Immich if retiring the frame.
+
+### Provision from a private local file (no remote typing)
+
+The repository-root file `immich_api.key` can hold only the API key as UTF-8 plain text.
+Keep it ignored and untracked, and restrict access with `chmod 600 immich_api.key`.
+Rich text, Keynote documents, and binary property lists are not accepted as key files.
+The key is never embedded in an APK or a Git commit.
+
+From this checkout, validate the private file and prepare a payload without connecting to ADB:
+
+```sh
+python3 scripts/provision-immich.py
+```
+
+Only after an ordinary-app installation and explicit deployment approval, use
+`python3 scripts/provision-immich.py --apply`. The helper requires the existing root ADB
+connection, stops Immix, backs up previous settings privately under ignored `.tooling/`,
+and writes the URL/key into the app-private preferences over stdin, not command arguments.
+It preserves other settings, enables certificate verification and disables debug logging.
+It does not install, launch, select a launcher, disable Nixplay, or change screen/wireless settings.
+System-app UIDs are deliberately rejected pending separate review.
+
+The app attempts to encrypt provisioned credentials on its next launch using Android Keystore.
+Verify that this succeeds on the actual frame: the current app can fall back to plaintext
+if the keystore fails. Until that launch, the provisioned key is plaintext in private app storage.
+The helper is locally tested with synthetic credentials; actual device provisioning remains untested.
+
+### Which features need which permissions?
+
+| Permission | Use in this client |
+| --- | --- |
+| `album.read` | List albums and retrieve the selected album's metadata. |
+| `asset.read` | Read asset metadata; search album/random/recent photos; load timeline buckets. |
+| `asset.view` | Display previews/thumbnails and stream video playback. |
+| `asset.download` | Retrieve original files when original-quality media is requested. |
+| `person.read` | People browsing and person thumbnails; optional if those features are not used. |
+| `memory.read` | Memories; optional if memories are not used. |
+| `folder.read` | Folder/path browsing; optional if folders are not used. |
+
+For an album-only slideshow trial, start with the first four permissions. The other three
+are recommended for the full browsing interface, since it may request data for those sections;
+with a smaller key, unused sections may display permission errors. This smaller profile has
+not yet been tested on the frame.
+
+A key's permissions restrict operations, while the account and album-sharing permissions
+restrict which photos it can access. Selecting an album in Immix is a display filter, not
+an access-control boundary. A Viewer account may also be unable to change shared assets,
+regardless of which API-key scopes are selected.
+
+### Optional write permission: favorites
+
+`asset.update` is required only if you want Immix's favorite/unfavorite control to change an
+asset on the server. **Leave it off for a read-only frame.** Slideshow playback does not need it;
+favorite changes will fail with the app's error message. This permission permits other asset
+updates too, so it is broader than a favorites-only grant.
+
+### Why the older list is not required
+
+This client does not call endpoints requiring `activity.read`, `album.download`, `archive.read`,
+`face.read`, `library.read`, `partner.read`, `session.read`, `tag.asset`, `tag.read`, or
+`timeline.read`. In Immich 3.3.0, the timeline bucket endpoints used here require `asset.read`,
+not `timeline.read`. This is based on the current client endpoint inventory, not a promise that
+future client/server versions will never need additional permissions.
+
+References: [client endpoint interface](app/src/main/java/nl/giejay/android/tv/immich/api/service/ApiService.kt),
+[favorite action](app/src/main/java/nl/giejay/android/tv/immich/slider/FavoriteService.kt), and the
+Immich 3.3.0 [album](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/album.controller.ts),
+[search](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/search.controller.ts),
+[media](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/asset-media.controller.ts),
+[timeline](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/timeline.controller.ts),
+[people](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/person.controller.ts),
+[memory](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/memory.controller.ts),
+and [folder](https://github.com/immich-app/immich/blob/v3.3.0/server/src/controllers/view.controller.ts) controllers.
 
 ## Screenshots
 
@@ -103,8 +221,8 @@ include:
 
 1. Clone project with `git clone --recurse git@github.com:giejay/Immich-Android-TV.git`
 2. Create an account at firebase and create a google-services.json file, or
-   `cp apps/google-services.example apps/google-services.json`
-3. copy app/src/strings_other.xml.example to app/src/main/res/values/strings_other.xml and modify
+   `cp app/google-services.example app/google-services.json`
+3. copy app/strings_other.xml.example to app/src/main/res/values/strings_other.xml and modify
    the address and API keys for your demo server.
 4. Build apk with `./gradlew assembleRelease`
 
@@ -130,6 +248,7 @@ might consider buying me a coffee or a beer:
    instructions: https://www.xda-developers.com/install-adb-windows-macos-linux/
 4. After downloading/installing ADB on the PC, connect to the device using it's IP: adb connect
    192.168.xx.xx.
-5. Once you are connected, execute the following command: 'adb shell settings put secure
+5. If you have an Amazon Fire TV, first execute this command and reboot after: 'adb shell settings put secure amazon_ambient_enabled 0'
+6. Execute the following command: 'adb shell settings put secure
    screensaver_components nl.giejay.android.tv.immich/.screensaver.ScreenSaverService'
-6. Done!
+7. Done!

@@ -37,7 +37,6 @@ public class ActivitySensor {
 
     public void checkSensors() {
         try {
-            Thread.currentThread().setPriority(10);
             instance.checkIfActivityDetected(sensorServiceCallback);
         } catch (SecurityException e2) {
             Timber.e(e2.toString());

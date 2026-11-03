@@ -1,0 +1,16 @@
+#!/bin/sh
+# Run Gradle with the development tools and caches confined to this checkout.
+set -eu
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ ! -f "$project_dir/.tooling/java-home.txt" ]; then
+    echo 'Project-local JDK is missing. See docs/REVIVAL.md.' >&2
+    exit 1
+fi
+JAVA_HOME=$(cat "$project_dir/.tooling/java-home.txt")
+ANDROID_HOME="$project_dir/.tooling/android-sdk"
+ANDROID_SDK_ROOT="$ANDROID_HOME"
+ANDROID_USER_HOME="$project_dir/.tooling/android-user"
+GRADLE_USER_HOME="$project_dir/.gradle-local"
+export JAVA_HOME ANDROID_HOME ANDROID_SDK_ROOT ANDROID_USER_HOME GRADLE_USER_HOME
+cd "$project_dir"
+exec ./gradlew "$@"

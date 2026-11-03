@@ -17,3 +17,9 @@
 keystore
 mediasliderold
 mediaslider2
+commits.txt
+service-account-key.json
+.tooling/
+.gradle-local/
+app/google-services.json
+app/src/main/res/values/strings_other.xml

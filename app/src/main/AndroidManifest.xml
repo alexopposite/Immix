@@ -17,10 +17,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-
     <!-- Access internet-based media -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Donation -->
     <uses-permission android:name="com.android.vending.BILLING" />
 
@@ -37,20 +36,29 @@
     <!-- This is an Android TV app only (not intended for mobile) -->
     <uses-feature
         android:name="android.software.leanback"
-        android:required="true" />
+        android:required="false" />
 
     <application
         android:name="nl.giejay.android.tv.immich.ImmichApplication"
         android:allowBackup="true"
         android:fullBackupContent="true"
         android:icon="@drawable/icon"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:usesCleartextTraffic="true"
         android:largeHeap="true"
         android:hardwareAccelerated="true"
-        android:banner="@mipmap/icon_banner"
+        android:banner="@mipmap/icon_banner_v2"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
+        <!-- Runs before Application.onCreate() and before any other provider with a lower
+             initOrder (FirebaseInitProvider is at 100, this is set higher so it always wins). -->
+        <provider
+            android:name="nl.giejay.android.tv.immich.AppContextInitializer"
+            android:authorities="${applicationId}.appcontextinitializer"
+            android:exported="false"
+            android:initOrder="2147483647" />
 
         <service
             android:name="nl.giejay.android.tv.immich.screensaver.ScreenSaverService"
@@ -71,34 +79,47 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:configChanges="keyboard|keyboardHidden|navigation">
 
             <!-- Used as the main entry point from the leanback launcher -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
+<!--                <category android:name="android.intent.category.HOME" />-->
             </intent-filter>
-<!--
+
             <intent-filter>
                 <action android:name="com.google.android.gms.cast.tv.action.LAUNCH" />
                 <action android:name="com.google.android.gms.cast.tv.action.LOAD"/>
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
--->
+
+            <!-- Deep links from home screen channel programs/channels, see homescreenchannels.ChannelDeepLinks -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="immichtv" />
+            </intent-filter>
+
         </activity>
 
         <!-- BroadcastReceiver for setting up the home screen channel -->
-<!--        <receiver-->
-<!--            android:name="nl.giejay.android.tv.immich.homescreenchannels.HomeScreenChannelReceiver"-->
-<!--            android:exported="true">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.media.tv.action.INITIALIZE_PROGRAMS" />-->
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--            </intent-filter>-->
-<!--        </receiver>-->
+        <receiver
+            android:name="nl.giejay.android.tv.immich.homescreenchannels.HomeScreenChannelReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.tv.action.INITIALIZE_PROGRAMS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.media.tv.action.PREVIEW_PROGRAM_BROWSABLE_DISABLED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
 
         <!--
          ~ Options provider class for Cast Connect when CastReceiverContext
@@ -109,6 +130,14 @@
             android:name="com.google.android.gms.cast.tv.RECEIVER_OPTIONS_PROVIDER_CLASS_NAME"
             android:value="nl.giejay.android.tv.immich.castconnect.CastReceiverOptionsProvider" />
 
+        <activity-alias android:name=".NixplayLauncher" android:targetActivity=".MainActivity"
+            android:exported="true" android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
     </application>
 
 </manifest>

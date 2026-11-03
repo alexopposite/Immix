@@ -1,0 +1,5 @@
+<resources>
+    <string name="host_name" translatable="false"></string>
+    <string name="api_key" translatable="false"></string>
+    <string name="authentication_url" translatable="false">https://example.invalid/</string>
+</resources>
